@@ -2,9 +2,9 @@
 // ============================================================ //
 // ============================================================ //
 
-$primary: #F03838;
-$secondary: #303030;
-$background: #FEFEFE;
+$primary: #01907e;
+$secondary: #062965;
+$background: #ffffff;
 
 /* ============================================================ */
 /* Base */
@@ -14,7 +14,7 @@ html, body { height: 100%; }
 
 body {
     background: $background;
-    color: #424242;
+    color: #062965;
     font-family: "Open Sans", arial, sans-serif;
     font-size: 18px;
 }
@@ -193,7 +193,7 @@ table {
     background: $secondary;
     border: none;
     border-radius: 3px;
-    color: #FEFEFE;
+    color: #ffffff;
     font-size: 14px;
     font-weight: 700;
     padding: 10px 12px;
@@ -247,7 +247,7 @@ table {
     a {
         float: left;
         background: $primary;
-        color: #FEFEFE;
+        color: #ffffff;
         padding: 5px 10px 6px;
 
         &:hover { background: $secondary; }
@@ -271,7 +271,7 @@ table {
     font-weight: 700;
     margin: 0 10px;
 
-    a:hover { color: #424242; }
+    a:hover { color: #062965; }
 }
 
 /* ============================================================ */
@@ -387,7 +387,7 @@ table {
 .older-posts {
     float: left;
     background: $primary;
-    color: #FEFEFE;
+    color: #ffffff;
     font-size: 14px;
     font-weight: 600;
     margin: 0 5px;
@@ -422,7 +422,7 @@ table {
         -moz-transition: all 0.2s ease-in-out;
         transition: all 0.2s ease-in-out;
         display: block;
-        color: #424242;
+        color: #062965;
         padding: 20px 5px;
 
         &:hover {
