@@ -1,11 +1,10 @@
-baseurl = "https://example.com/"
+baseurl = "https://priceless-hypatia-e1820d.netlify.com/"
 title = "between the pipe operator"
 theme = "ghostwriter"
 languageCode = "en-us"
 copyright = "Em."
 disqusShortname = "XXX"
 googleAnalytics = "XXX"
-ignoreFiles = ["\\.Rmd$", "\\.Rmarkdown$", "_files$", "_cache$"]
 enableEmoji = true
 
 [Privacy]
