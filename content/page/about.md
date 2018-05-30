@@ -7,8 +7,10 @@ description = "About."
 
 ## About
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean nec dolor in magna lobortis egestas. Suspendisse eu erat tempor, tristique neque eu, convallis nulla. Curabitur vel bibendum lacus, at semper mauris. Suspendisse aliquet commodo ex, sed sagittis metus aliquam id. Maecenas feugiat rutrum lorem vel imperdiet. Nullam ornare lectus ut enim finibus, et porttitor mi tincidunt. Aenean lacinia, leo quis vehicula eleifend, quam libero sagittis erat, at euismod augue mauris et sapien. Sed id vehicula lectus, sit amet auctor ipsum. Nunc sed massa vel ex condimentum aliquam in a enim. Cras enim sem, tristique eu enim ac, congue commodo mi. Integer quis orci at dolor blandit eleifend.
+Hi! My name is Em. I work in academic health research in London, UK - doing data management, wrangling and analysis. 
 
-## School
+My language of choice is R, which I started learning in January 2017. I like to think I have a pretty good handle on it - but I have a very long list of things to learn! As of May 2018, I'm also learning Python - trying to get that diverse skill set...
 
-Sed quis pulvinar nisi, sed dapibus lacus. Mauris tempus ex ut ipsum facilisis interdum. Integer feugiat urna sed feugiat tempor. Quisque dictum vestibulum feugiat. Nunc nec est volutpat lorem imperdiet egestas sit amet ut orci. Aliquam venenatis neque ipsum, a placerat lectus cursus at. Donec pellentesque tellus hendrerit faucibus posuere. Etiam gravida consequat lectus, volutpat consectetur velit convallis nec. Praesent sagittis luctus dignissim.
+Although I work in medical sciences right now, I have a BSc in Sociology and have worked in a library, an auction house, a music venue and in the middle of a desert - I like to try new things and don't like to be bored. 
+
+I'll be writing here about my work (in the abstract) and personal adventures in data science. I'm always contactable on Twitter (@anyembutme).
