@@ -13,4 +13,4 @@ My language of choice is R, which I started learning in January 2017. I like to 
 
 Although I work in medical sciences right now, I have a BSc in Sociology and have worked in a library, an auction house, a music venue and in the middle of a desert - I like to try new things and don't like to be bored. 
 
-I'll be writing here about my work (in the abstract) and personal adventures in data science. I'm always contactable on Twitter (@anyembutme).
+I'll be writing here about my work (in the abstract) and personal adventures in data science. I'm a (reluctant) ice hockey fan and I'm trying to understand the analytics side of the sport - so expect some discussion of that here too!
