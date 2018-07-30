@@ -1,0 +1,43 @@
+---
+title: "dates."
+author: "Em"
+date: 2018-07-30
+categories: ["R", "problem & solution"]
+tags: ["R", "lubridate", "problem & solution"]
+---
+
+
+
+<div id="a-few-days-ago-i-retweeted-this" class="section level1">
+<h1>A few days ago, I retweeted this:</h1>
+{{% tweet "1023106076563173376" %}}
+<p>One of the datasets I’m wrangling at work at the moment has over 1000 columns. It is all part of one assessment and breaking it into pieces doesn’t make sense (in fact, it used to be part of a larger dataset which was about 2500 columns…). There are many different types of data in these columns, including categorical data (coded survey responses), a few ‘notes’ fields with comments in, various measurements, durations, frequencies - and dates.</p>
+<p>This is a prime example of the importance of being able to apply what you learn to real world data. Small teaching datasets are great for learning the basics, but the real test is being able to figure out how to extrapolate, and, more importantly, where you CAN’T use particular techniques. It’s also highlighted for me the value of having a well-documented dataset.</p>
+<p>The purpose of wrangling this is twofold - a) to make it easier for us to analyse, and b) to get it in a format where we can share it with other researchers without them having to spend months trying to figure out what is going on.</p>
+<p>I have done similar things with all the other datasets that we have, and generally it has been relatively straightforward, but for this particular dataset, I have wanted to delete it all on multiple occasions.</p>
+<p>For the most part, I’ve been able to figure out that variables with particular suffixes are (usually but not always) different types of data - variables with an ‘f’ at the end are usually frequencies, for example. Therefore, I’ve been able to run through the data with for loops to check for invalid data, add in new columns where needed (and populate them), and make sure columns are formatted correctly.</p>
+<p>It’s not a particularly fast way of doing it, but this didn’t feel like the right time to learn how to use the purrr package (baby steps) and now that I have clear code which works, I can think about making it faster!</p>
+<p>The one place I really ran into problems was with the columns which had dates. First of all, this dataset came to me as an .xlsx file which is to be expected, but not ideal.</p>
+<div id="problem-1" class="section level2">
+<h2>Problem 1:</h2>
+<p>I discovered when trying to just use <code>as.Date</code> that not everything in these columns was a date - there were some missing codes. OK, OK - so we can create a new column for these missing data values, and make the values in the original column <code>NA</code>. Try again.</p>
+</div>
+<div id="problem-2" class="section level2">
+<h2>Problem 2:</h2>
+<p>Not all the dates are in the same format. Ah. To Google we go. So, looks like you can use <code>as.POSIXct</code> or <code>parse_date_time</code> with a vector of formats to try. Let’s go for that then.</p>
+</div>
+<div id="problem-3" class="section level2">
+<h2>Problem 3:</h2>
+<p>Some of the dates are in Excel’s fun little ‘number of days since 1 Jan 1900’ format. This doesn’t seem to be a format option in <code>as.POSIXct</code> or in any <code>lubridate</code> function. You can apparently use the <code>origin</code> argument, but this didn’t work for me (threw up an error message about ambiguous date formats every time.) If anyone knows a way to get around this, I would be super grateful because what I actually did to get around this problem was to go back to the original .xlsx and make sure that all the date columns (about 150 of them) were formatted as ‘Short Date’ and not as ‘General’ in Excel. This was…not fun. But let’s try again.</p>
+</div>
+<div id="problem-4" class="section level2">
+<h2>Problem 4:</h2>
+<p>Interesting. So formatting as a date using <code>lubridate</code>‘s <code>parse_date_time</code> function now works fine on an individual column, but when I try to run my for loop over the entire dataset, it doesn’t work. When I go to look at an individual column where an error occurred, the dates are no longer dates, but a long string of numbers. ????? Back to Google. It took me quite a long time to figure this out, and eventually stumbled across something by googling ’lubridate weird long numbers’ (no joke). It seems I was using <code>parse_date_time</code> in a conditional loop - but <code>if</code> strips attributes, so instead of the date showing as a date, it was showing as number of seconds from 1 Jan 1970. OK. I rewrote my code to use <code>ifelse</code> and tried again.</p>
+<div id="success.-finally." class="section level3">
+<h3>SUCCESS. FINALLY.</h3>
+<p>I still had a few oddities where there had been data input errors (or descriptions of dates, or two dates in one column), so had to sort those out, but I had solved the larger issue of reformatting multiple columns of mixed-format dates. I would love to have done it without having to amend the formatting in Excel, but I suspect the answer here may be to ensure the dates get recorded correctly to begin with. I think <code>read_xlsx</code> from the <code>readxl</code> package can deal with column types, but looks like you have to specify each column type and with 1000+ columns, this isn’t really feasible - but great if there’s only a few columns.</p>
+<p>This piece of work has taught me a lot more about working with dates in R, as well as how to Google creatively to find answers to problems. I’m hoping I don’t have to deal with something like this again in the very near future, but I know I’ll be prepared if I do!</p>
+<p>Next up: something fun…</p>
+</div>
+</div>
+</div>

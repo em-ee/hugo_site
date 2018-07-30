@@ -16,9 +16,12 @@ I've been thinking for a long time about making a blog. I even went as far as cr
 
 I find it difficult/am reluctant to document my data science journey for two main reasons:
 
-[1] I am not super confident in my abilities yet, so am a bit worried about posting something which turns out to be completely wrong.
-[2] I can't share anything I do at work as it's confidential. So it's a bit difficult to write about it with examples, and impossible to put anything on github, which means I need to start from scratch if I want to put any code out there. 
+1. I am not super confident in my abilities yet, so am a bit worried about posting something which turns out to be completely wrong.
 
-That being said, in October I'm going to start a Data Science MSc, so provided I'm allowed, I'll be able to post about my coursework. I am also trying to get somewhere with NHL analytics - so will post about that when I have something to say as well. I'm also going to try posting about things I'm doing at work generally, rather than specifically - let's see how it goes!
+2. I can't share anything I do at work as it's confidential. So it's a bit difficult to write about it with examples, and impossible to put anything on github, which means I need to start from scratch if I want to put any code out there. 
+
+That being said, in October I'm going to start a Data Science MSc, so provided I'm allowed, I'll be able to post about my coursework. I am also trying to get somewhere with NHL analytics - so will post about that when I have something to say as well. I'm also going to try posting about things I'm doing at work generally, rather than specifically. 
+
+I'm aiming for at least one post a week - let's see how it goes!
 
 
