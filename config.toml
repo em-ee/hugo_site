@@ -1,4 +1,4 @@
-baseurl = "https://betweenthepipeoperator.netlify.com/"
+baseurl = "https://em-ee.netlify.com/"
 title = "between the pipe operator"
 theme = "ghostwriter"
 languageCode = "en-us"
@@ -32,6 +32,7 @@ enableEmoji = true
     #linkedin = "https://linkedin.com/in/XXX/"
     #gplus = "https://google.com/+XXX"
     twitter = "https://twitter.com/anyembutme"
+    instagram = "https://instagram.com/anyembutme"
     #stackoverflow = "https://stackoverflow.com/users/XXX/YYY"
     #email = "XXX@example.com"
     opengraph = true

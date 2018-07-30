@@ -1,37 +1,24 @@
 ---
-title: "Hello R Markdown"
-author: "Frida Gomam"
-date: 2015-07-23T21:13:14-05:00
+title: "hello world"
+author: "Em"
+date: 2018-07-30
 categories: ["R"]
-tags: ["R Markdown", "plot", "regression"]
+tags: ["hello"]
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(collapse = TRUE)
 ```
 
-# R Markdown
+# Welcome!
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+I've been thinking for a long time about making a blog. I even went as far as creating an account on a couple of different blogging sites - and then just let them sit there and didn't post anything. Then I decided to take part in #SoDS18 and one of my goals was to start a blog - so hopefully this time will be different! 
 
-You can embed an R code chunk like this:
+I find it difficult/am reluctant to document my data science journey for two main reasons:
 
-```{r cars}
-summary(cars)
-fit <- lm(dist ~ speed, data = cars)
-fit
-```
+[1] I am not super confident in my abilities yet, so am a bit worried about posting something which turns out to be completely wrong.
+[2] I can't share anything I do at work as it's confidential. So it's a bit difficult to write about it with examples, and impossible to put anything on github, which means I need to start from scratch if I want to put any code out there. 
 
-# Including Plots
+That being said, in October I'm going to start a Data Science MSc, so provided I'm allowed, I'll be able to post about my coursework. I am also trying to get somewhere with NHL analytics - so will post about that when I have something to say as well. I'm also going to try posting about things I'm doing at work generally, rather than specifically - let's see how it goes!
 
-You can also embed plots. See Figure \@ref(fig:pie) for example:
 
-```{r pie, fig.cap='A fancy pie chart.', tidy=FALSE}
-par(mar = c(0, 1, 0, 1))
-pie(
-  c(280, 60, 20),
-  c('Sky', 'Sunny side of pyramid', 'Shady side of pyramid'),
-  col = c('#0292D8', '#F7EA39', '#C4B632'),
-  init.angle = -50, border = NA
-)
-```
