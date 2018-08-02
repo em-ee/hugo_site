@@ -46,7 +46,7 @@ Some of the dates are in Excel's fun little 'number of days since 1 Jan 1900' fo
 ## Problem 4:
 Interesting. So formatting as a date using `lubridate`'s `parse_date_time` function now works fine on an individual column, but when I try to run my for loop over the entire dataset, it doesn't work. When I go to look at an individual column where an error occurred, the dates are no longer dates, but a long string of numbers. ????? Back to Google. 
 It took me quite a long time to figure this out, and eventually stumbled across something by googling 'lubridate weird long numbers' (no joke). It seems I was using `parse_date_time` in a conditional loop - but `if` strips attributes, so instead of the date showing as a date, it was showing as number of seconds from 1 Jan 1970. OK.
-I rewrote my code to use `ifelse` and tried again. 
+I rewrote my code and tried again. 
 
 ### SUCCESS. FINALLY.
 
