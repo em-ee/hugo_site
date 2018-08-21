@@ -1,0 +1,1561 @@
+---
+title: "NHL clustering"
+author: "Em"
+date: 2018-08-21
+categories: ["R", "hockey"]
+tags: ["R", "clustering", "ml", "hockey"]
+---
+
+<script src="/rmarkdown-libs/htmlwidgets/htmlwidgets.js"></script>
+<script src="/rmarkdown-libs/plotly-binding/plotly.js"></script>
+<script src="/rmarkdown-libs/typedarray/typedarray.min.js"></script>
+<script src="/rmarkdown-libs/jquery/jquery.min.js"></script>
+<link href="/rmarkdown-libs/crosstalk/css/crosstalk.css" rel="stylesheet" />
+<script src="/rmarkdown-libs/crosstalk/js/crosstalk.min.js"></script>
+<link href="/rmarkdown-libs/plotly-htmlwidgets-css/plotly-htmlwidgets.css" rel="stylesheet" />
+<script src="/rmarkdown-libs/plotly-main/plotly-latest.min.js"></script>
+
+
+<div id="i-have-finally-got-around-to-doing-some-work-on-nhl-data." class="section level2">
+<h2>I have finally got around to doing some work on NHL data.</h2>
+<p>A couple of days ago, Sean Tierney ( <span class="citation">[@ChartingHockey]</span>(<a href="https://twitter.com/ChartingHockey" class="uri">https://twitter.com/ChartingHockey</a>) ) posted this:</p>
+{{% tweet "1030799366913703937" %}}
+<p>Sean does many great things with Tableau (see more <a href="https://public.tableau.com/profile/sean.tierney">here</a>) so of course I was super excited to see these new charts.</p>
+<p>The data comes from <a href="http://moneypuck.com/about.htm">Moneypuck</a> and shows shots for NHL seasons 2007-2017. The dataset can be downloaded from Moneypuck - there’s over 1 million shots in the full dataset, however, so keep that in mind!</p>
+<p>Looking at Sean’s charts, I chose a few players off the top of my head and one thing I noticed was a distinct difference in shot types between defensemen and forwards.</p>
+{{% tweet "1030808619988779008" %}}
+<p>I have been meaning to do some analysis on hockey data for ages - but have never quite got properly around to it. But here I thought I might be able to do something relatively straightforward and see if I could cluster players based on their shot types.</p>
+<p>I had a (very) quick search but couldn’t immediately see that anyone had done this with this dataset - but please do point me towards any similar analyses.</p>
+<div id="data-wrangling" class="section level3">
+<h3>Data wrangling:</h3>
+<p>I started by filtering the data to just include the 2015-2017 seasons - even so there are still about 340,000 shots - plenty to start with.</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">shooterName</th>
+<th align="right">shotID</th>
+<th align="left">shotType</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Brad Boyes</td>
+<td align="right">833715</td>
+<td align="left">WRIST</td>
+</tr>
+<tr class="even">
+<td align="left">Nazem Kadri</td>
+<td align="right">833716</td>
+<td align="left">SNAP</td>
+</tr>
+<tr class="odd">
+<td align="left">Nazem Kadri</td>
+<td align="right">833717</td>
+<td align="left">SNAP</td>
+</tr>
+<tr class="even">
+<td align="left">Daniel Winnik</td>
+<td align="right">833718</td>
+<td align="left">WRIST</td>
+</tr>
+<tr class="odd">
+<td align="left">Scott Harrington</td>
+<td align="right">833719</td>
+<td align="left">SNAP</td>
+</tr>
+<tr class="even">
+<td align="left">Joffrey Lupul</td>
+<td align="right">833720</td>
+<td align="left">TIP</td>
+</tr>
+<tr class="odd">
+<td align="left">Dion Phaneuf</td>
+<td align="right">833721</td>
+<td align="left">WRIST</td>
+</tr>
+<tr class="even">
+<td align="left">Max Pacioretty</td>
+<td align="right">833722</td>
+<td align="left">WRIST</td>
+</tr>
+<tr class="odd">
+<td align="left">Alexander Semin</td>
+<td align="right">833723</td>
+<td align="left">SLAP</td>
+</tr>
+<tr class="even">
+<td align="left">Jeff Petry</td>
+<td align="right">833724</td>
+<td align="left">WRIST</td>
+</tr>
+</tbody>
+</table>
+<p>I also picked a couple of variables as descriptors - team and position for each skater.</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">shooterName</th>
+<th align="left">teamCode</th>
+<th align="left">playerPositionThatDidEvent</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Brad Boyes</td>
+<td align="left">TOR</td>
+<td align="left">R</td>
+</tr>
+<tr class="even">
+<td align="left">Nazem Kadri</td>
+<td align="left">TOR</td>
+<td align="left">C</td>
+</tr>
+<tr class="odd">
+<td align="left">Daniel Winnik</td>
+<td align="left">TOR</td>
+<td align="left">C</td>
+</tr>
+<tr class="even">
+<td align="left">Scott Harrington</td>
+<td align="left">TOR</td>
+<td align="left">D</td>
+</tr>
+<tr class="odd">
+<td align="left">Joffrey Lupul</td>
+<td align="left">TOR</td>
+<td align="left">R</td>
+</tr>
+<tr class="even">
+<td align="left">Dion Phaneuf</td>
+<td align="left">TOR</td>
+<td align="left">D</td>
+</tr>
+<tr class="odd">
+<td align="left">Max Pacioretty</td>
+<td align="left">MTL</td>
+<td align="left">L</td>
+</tr>
+<tr class="even">
+<td align="left">Alexander Semin</td>
+<td align="left">MTL</td>
+<td align="left">R</td>
+</tr>
+<tr class="odd">
+<td align="left">Jeff Petry</td>
+<td align="left">MTL</td>
+<td align="left">D</td>
+</tr>
+<tr class="even">
+<td align="left">Dale Weise</td>
+<td align="left">MTL</td>
+<td align="left">R</td>
+</tr>
+</tbody>
+</table>
+<p>The first time I tried to cluster shot types, I used totals of each shot type per player. However, this ended up clustering into players who had lots of shots and players who had very few shots - which is not very interesting or useful.</p>
+<p>So I took the total of each shot type as a proportion of total shots taken by that player. (I thought about filtering out anyone who hadn’t had a certain number of shots - but decided against it at this stage as it looked like it would exclude too many players (e.g. the median total is 148 shots)).</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">shooterName</th>
+<th align="right">defl</th>
+<th align="right">back</th>
+<th align="right">wrist</th>
+<th align="right">slap</th>
+<th align="right">snap</th>
+<th align="right">tip</th>
+<th align="right">wrap</th>
+<th align="right">tot</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">A.J. Greer</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.8</td>
+<td align="right">0.1</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">20</td>
+</tr>
+<tr class="even">
+<td align="left">Aaron Ekblad</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.4</td>
+<td align="right">0.6</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">694</td>
+</tr>
+<tr class="odd">
+<td align="left">Aaron Ness</td>
+<td align="right">0.0</td>
+<td align="right">0.1</td>
+<td align="right">0.5</td>
+<td align="right">0.3</td>
+<td align="right">0.1</td>
+<td align="right">0.1</td>
+<td align="right">0.1</td>
+<td align="right">17</td>
+</tr>
+<tr class="even">
+<td align="left">Adam Clendening</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.6</td>
+<td align="right">0.3</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">94</td>
+</tr>
+<tr class="odd">
+<td align="left">Adam Cracknell</td>
+<td align="right">0.0</td>
+<td align="right">0.2</td>
+<td align="right">0.7</td>
+<td align="right">0.1</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">178</td>
+</tr>
+<tr class="even">
+<td align="left">Adam Erne</td>
+<td align="right">0.0</td>
+<td align="right">0.2</td>
+<td align="right">0.6</td>
+<td align="right">0.1</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">85</td>
+</tr>
+<tr class="odd">
+<td align="left">Adam Gaudette</td>
+<td align="right">0.1</td>
+<td align="right">0.1</td>
+<td align="right">0.5</td>
+<td align="right">0.1</td>
+<td align="right">0.1</td>
+<td align="right">0.1</td>
+<td align="right">0.1</td>
+<td align="right">15</td>
+</tr>
+<tr class="even">
+<td align="left">Adam Henrique</td>
+<td align="right">0.0</td>
+<td align="right">0.3</td>
+<td align="right">0.6</td>
+<td align="right">0.1</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">351</td>
+</tr>
+<tr class="odd">
+<td align="left">Adam Larsson</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.6</td>
+<td align="right">0.4</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">316</td>
+</tr>
+<tr class="even">
+<td align="left">Adam Lowry</td>
+<td align="right">0.1</td>
+<td align="right">0.1</td>
+<td align="right">0.7</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">303</td>
+</tr>
+</tbody>
+</table>
+<p>I wasn’t sure how many clusters would be appropriate, so I ran k-means for 1:10 clusters and constructed an elbow plot - looking at this, the best number of clusters seemed to be 3 or 4. I chose 3 - when I tried it with 4, there were 2 clusters which seemed to have virtually no difference between them, although I’d like to explore this a bit further.</p>
+<p><img src="/post/nhl_clusters_files/figure-html/elbow-1.png" width="672" /></p>
+<p><img src="/post/nhl_clusters_files/figure-html/sil-1.png" width="672" /></p>
+</div>
+</div>
+<div id="cluster-plots" class="section level2">
+<h2>Cluster plots</h2>
+<p>You can see here the clusters mapped against wrist shots and slap shots (slap shots was where there seemed to be the biggest difference between players):</p>
+<p><img src="/post/nhl_clusters_files/figure-html/ggplot%20shots-1.png" width="672" /></p>
+<p>You can see a bit more in a plotly 3D plot, added in backhand shots here as well:</p>
+<div id="htmlwidget-1" style="width:672px;height:480px;" class="plotly html-widget"></div>
+<script type="application/json" data-for="htmlwidget-1">{"x":{"visdat":{"f4535e3ad112":["function () ","plotlyVisDat"]},"cur_data":"f4535e3ad112","attrs":{"f4535e3ad112":{"x":{},"y":{},"z":{},"alpha_stroke":1,"sizes":[10,100],"spans":[1,20],"type":"scatter3d","mode":"markers","color":{},"inherit":true}},"layout":{"margin":{"b":40,"l":60,"t":25,"r":10},"scene":{"xaxis":{"title":"wrist"},"yaxis":{"title":"slap"},"zaxis":{"title":"back"}},"hovermode":"closest","showlegend":false,"legend":{"yanchor":"top","y":0.5}},"source":"A","config":{"modeBarButtonsToAdd":[{"name":"Collaborate","icon":{"width":1000,"ascent":500,"descent":-50,"path":"M487 375c7-10 9-23 5-36l-79-259c-3-12-11-23-22-31-11-8-22-12-35-12l-263 0c-15 0-29 5-43 15-13 10-23 23-28 37-5 13-5 25-1 37 0 0 0 3 1 7 1 5 1 8 1 11 0 2 0 4-1 6 0 3-1 5-1 6 1 2 2 4 3 6 1 2 2 4 4 6 2 3 4 5 5 7 5 7 9 16 13 26 4 10 7 19 9 26 0 2 0 5 0 9-1 4-1 6 0 8 0 2 2 5 4 8 3 3 5 5 5 7 4 6 8 15 12 26 4 11 7 19 7 26 1 1 0 4 0 9-1 4-1 7 0 8 1 2 3 5 6 8 4 4 6 6 6 7 4 5 8 13 13 24 4 11 7 20 7 28 1 1 0 4 0 7-1 3-1 6-1 7 0 2 1 4 3 6 1 1 3 4 5 6 2 3 3 5 5 6 1 2 3 5 4 9 2 3 3 7 5 10 1 3 2 6 4 10 2 4 4 7 6 9 2 3 4 5 7 7 3 2 7 3 11 3 3 0 8 0 13-1l0-1c7 2 12 2 14 2l218 0c14 0 25-5 32-16 8-10 10-23 6-37l-79-259c-7-22-13-37-20-43-7-7-19-10-37-10l-248 0c-5 0-9-2-11-5-2-3-2-7 0-12 4-13 18-20 41-20l264 0c5 0 10 2 16 5 5 3 8 6 10 11l85 282c2 5 2 10 2 17 7-3 13-7 17-13z m-304 0c-1-3-1-5 0-7 1-1 3-2 6-2l174 0c2 0 4 1 7 2 2 2 4 4 5 7l6 18c0 3 0 5-1 7-1 1-3 2-6 2l-173 0c-3 0-5-1-8-2-2-2-4-4-4-7z m-24-73c-1-3-1-5 0-7 2-2 3-2 6-2l174 0c2 0 5 0 7 2 3 2 4 4 5 7l6 18c1 2 0 5-1 6-1 2-3 3-5 3l-174 0c-3 0-5-1-7-3-3-1-4-4-5-6z"},"click":"function(gd) { \n        // is this being viewed in RStudio?\n        if (location.search == '?viewer_pane=1') {\n          alert('To learn about plotly for collaboration, visit:\\n https://cpsievert.github.io/plotly_book/plot-ly-for-collaboration.html');\n        } else {\n          window.open('https://cpsievert.github.io/plotly_book/plot-ly-for-collaboration.html', '_blank');\n        }\n      }"}],"cloud":false},"data":[{"x":[0.8,0.4,0.5,0.6,0.7,0.6,0.5,0.6,0.6,0.7,0.5,0.5,0.6,0.8,0.8,0.5,0.6,0.8,0.6,0.5,0.7,0.8,0,0.7,0.6,0.3,0.7,0.6,0.7,0.6,0.3,0.6,0.5,0.7,0.7,0.8,0.7,0.8,0.6,0.3,0.7,0.5,0.6,0.7,0.7,0.2,0.8,0.5,0.4,0.7,0.6,0.2,0.9,0.7,0.4,0.6,0.5,0.8,0.5,0.1,0,0.6,0.4,0.6,0.6,0.3,0.2,0.8,0.7,0,0.7,0.4,0.8,0.4,0.4,0.3,0.2,0.7,0.6,0.7,0.5,0.1,0.8,0.5,0.5,0.8,0.6,0.6,0.7,0.7,0.7,0.7,0.5,0.3,0.7,0.6,0.7,0.7,0.7,0.8,0.3,0.7,0.8,0.7,0.7,0.6,0.8,0.5,0.8,0.7,0.4,0.2,0.6,0.5,0.6,0.7,0.6,0.6,0.4,0.5,0,0.7,0.8,0.6,0.8,0.8,0.7,0.5,0.6,0.4,0.7,0.5,0.7,0.8,0.6,0.8,0,0.4,0.6,0.6,0.8,0.5,0.4,0.7,0.6,0.5,0.8,0.5,0.5,0.7,0.6,0.7,0.7,0.5,0.7,0.7,0.5,0.8,0.8,0.6,0.8,0.6,0.8,0.5,0.3,0.6,0.5,0.2,0.2,0.4,0.8,0.6,0.5,0.5,0.8,0.7,0.4,0.7,0.8,0.7,0.6,0,0.7,0.6,0.7,0.5,0.8,0.4,0.5,0.5,0.6,0.4,0.6,0.7,0,0.3,0.7,0.5,0.8,0.4,0.8,0,0.5,0.7,0.5,0.5,0.5,0.7,0.7,0.7,0.4,0.4,0.7,0.6,0.7,0.5,0.6,0.8,0.7,0.6,0.7,0.7,0.6,0.3,0.4,0.5,0.2,0.5,0.8,0.7,0.7,0.7,0.7,0.6,0.6,0.5,0.6,0.5,0.7,0.7,0.7,0.6,0.6,0.7,0.4,0.8,0.5,0.7,0.3,0.6,0.7,0.6,0.6,0.6,0.8,0.4,0.4,0.6,0.6,0.5,0.3,0.6,0.7,0.3,0.6,0.7,0.4,0.4,0.7,0.7,0.5,0.7,0.6,0.6,0.7,0.5,0.3,0.7,0.7,0.8,0.5,0,0.7,0.2,0.7,0.6,0.7,0.7,0.7,0.5,0.4,0.7,0.4,0.4,0.4,0.5,0.6,0,0.4,0.7,0.6,0.5,0.7,0.7,0.7,0.7,0.6,0.8,0.6,0.6,0.6,0.7,0.4,0.6,0.8,0.6,0.4,0.7,0.6,0.7,0.6,0.8,0.6,0.8,0.3,0.6,0.6,0.5,0.6,0,0.5,0.6,0.8,0.4,0.4,0.7,0.7,0.7,0.4,0.7,0.8,0.6,0.6,0.7,0.7,0.6,0.7,0.5,0.4,0.4,0.7,0.4,0.4,0.6,0.7,0.3,0.7,0.7,0.8,0.4,0.8,0.6,0.8,0.7,0.2,0.6,0.7,0.4,0.5,0.7,0.5,0.2,0.7,0.3,0.4,0.6,0.7,0,0.7,0.7,0.6,0.3,0.8,0.3,0.5,0.5,0.4,0.2,0.7,0.4,0.8,0.5,0.4,0.7,0.6,0.5,0.7,0.2,0,0.8,0.8,0.6,0.6,0.8,0.3,0.6,0.4,0.6,0.6,0.8,0.3,0.5,0.7,0.7,0.7,0.6,0.2,0.7,0.4,0.6,0.5,0.7,0.7,0.6,0.4,0.8,0,0.7,0.5,0.6,0.3,0.4,0.3,0.8,0.7,0.6,0.6,0.6,0.4,0,0.6,0.6,0.6,0.7,0.5,0.3,0.7,0.8,0.6,0.8,0.7,0.6,0.4,0.7,0.4,0.2,0.8,0.7,0.7,0.6,0.7,0,0.5,0.7,0.8,0.5,0.5,0.8,0.7,0.6,0.7,0.7,0.7,0.4,0.4,0.4,0.6,0.7,0.8,0.7,0.8,0.4,0.6,0.5,0.5,0.2,0.5,0.6,0.4,0.7,0.5,0.6,0.7,0.5,0.5,0.7,0.5,0.7,0.4,0.5,0.7,0.7,0.6,0.5,0.5,0.3,0.8,0.4,0.7,0.5,0.8,0.6,0,0.5,0.6,0.7,0.8,0.5,0.7,0.7,0.5,0.5,0.6,0.5,0.7,0.5,0.7,0.1,0.5,0.5,0.6,0,0.8,0.6,0.8,0.3,0.8,0.6,0.7,0.4,0.8,0.5,0.6,0.7,0.7,0.3,0.7,0.5,0.5,0.1,0.7,0.3,0.3,0.8,0.4,0.6,0.5,0.7,0.5,0.7,0.7,0.8,0.7,0.7,0.8,0,0.7,0.6,0.7,0.7,0.6,0.6,0.7,0.7,0.7,0.7,0.6,0.6,0.7,0.5,0.7,0.6,0.7,0.7,0.7,0.5,0.7,0.7,0.6,0.5,0.7,0.7,0.5,0.7,0.7,0.6,0.2,0.7,0.6,0.6,0.6,0.4,0.7,0.4,0.5,0.7,0.5,0.2,0.6,0.5,0.6,0.2,0.8,0.1,0.4,0.6,0.4,0.6,0.4,0.6,0.8,0.6,0.8,0.4,0.7,0.7,0.5,0.6,0.6,0.4,0.7,0.6,0.6,0.6,0.4,0.6,0.2,0.7,0.2,0.8,0.7,0.8,0.5,0.8,0.5,0.2,0.7,0.6,0.4,0.7,0.7,0.7,0.8,0.8,0.6,0.7,0.6,0.7,0.2,0.6,0.8,0.1,0.7,0.6,0.7,0.4,0.6,0.8,0.6,0.7,0.7,0.6,0.8,0.6,0.6,0.3,0.5,0.7,0.5,0.7,0.5,0.6,0.4,0.7,0.7,0.8,0.4,0.5,0.5,0.3,0.8,0.7,0.6,0.7,0.7,0.6,0.7,0.5,0.7,0.7,0.6,0.2,0.5,0.7,0.7,0.3,0.5,0.6,0.7,0.6,0.6,0.3,0.7,0.2,0.5,0.7,0.7,0.6,0.8,0.5,0.7,0.6,0.7,0.7,0.8,0.8,0.4,0.5,0.5,0.6,0.7,0.5,0.5,0.4,0.8,0.7,0.7,0.5,0.7,0.7,0.6,0.4,0.5,0.7,0.6,0.8,0.4,0.7,0.8,0.3,0.7,0.8,0.7,0.5,0.6,0.8,0.7,0.6,0.7,0.2,0.6,0.7,0.7,0.6,0.2,0.7,0.2,0.8,0.7,0,0.6,0.7,0.4,0.6,0.5,0.5,0.4,0.7,0.6,0.8,0.6,0.7,0.7,0.3,0.6,0.7,0.7,0.5,0.6,0.3,0.5,0.6,0.6,0.7,0.8,0.6,0.5,0,0.7,0.7,0.7,0.5,0.7,0.6,0.6,0.7,0.7,0.7,0.3,0.2,0.2,0.8,0,0,0.8,0.6,0.3,0.6,0.5,0.7,0.7,0.5,0.7,0.6,0.8,0.5,0.2,0.7,0.7,0.8,0.2,0.6,0.8,0.7,0.6,0.5,0.4,0.7,0.4,0.8,0.7,0.7,0.3,0.7,0.8,0.5,0.7,0.8,0.5,0.5,0.6,0.6,0.2,0,0.6,0.5,0.5,0.8,0.7,0.7,0.5,0.6,0.3,0.3,0.7,0.7,0.8,0.7,0.4,0.5,0.8,0.7,0.7,0.7,0.2,0.5,0.7,0.7,0.4,0.4,0.8,0.6,0.6,0.4,0.3,0.7,0.6,0.8,0.8,0.2,0.4,0,0.7,0.7,0.6,0.7,0.7,0,0.5,0.7,0.6,0.6,0.5,0.7,0.7,0.7,0.7,0.5,0.6,0.7,0.8,0.7,0.7,0.6,0.2,0.6,0.8,0.6,0.8,0.9,0.2,0.2,0.5,0.5,0.7,0.7,0.7,0.8,0.8,0.6,0.7,0.7,0.6,0.5,0,0.7,0.5,0.7,0.6,0.7,0.6,0.3,0.8,0.8,0.7,0.2,0.7,0.7,0.5,0.6,0.4,0.4,0.4,0.9,0.6,0.5,0.6,0.2,0.5,0.6,0.4,0.4,0.6,0.6,0.7,0.7,0.7,0.5,0.7,0.4,0.7,0.6,0.7,0.7,0.1,0.7,0.3,0.6,0.4,0.5,0.8,0.6,0.3,0.7,0.7,0.4,0.8,0.7,0.7,0.8,0.4,0.7,0.7,0.2,0.4,0.6,0.3,0,0.2,0.6,0.6,0.6,0.6,0.7,0.6,0.7,0.8,0,0.7,0.7,0.2,0.9,0.6,0.2,0.7,0.6,0.2,0.8,0.4,0.6,0.7,0.4,0.4,0.8,0.6,0.6,0.5,0.4,0.8,0.4,0.7,0.6,0.6,0.8,0,0.4,0.7,0.8,0.6,0.6,0.7,0.5,0.6,0.8,0.5,0.6,0.4,0.6,0.5,0.5,0.4,0.8,0.7,0.7,0.8,0.7,0.7,0.7,0.7,0.2,0.4,0.5,0.7,0.8,0.7,0.7,0.6,0.7,0.6,0.6,0.6,0.4,0.2,0.7,0.7,0.6,0.6,0.3,0.8,0.7,0.5,0.7,0.7,0.6,0.6,0.7,0.7,0.7,0.5,0.7,0.7,0.7,0.7,0.7,0.7,0.5,0.7,0.5,0.6,0.4,0.7,0.5,0.6,0.6,0.2,0.5,0.8,0,0.4,0.8,0.7,0.5,0.5,0.5,0.6,0.2,0.6,0.7,0.7,0.7,0.6,0.8,0.7,0.9,0.5,0.7,0.5,0.6,0.7,0.6,0.2,0.6,0.7,0,0.6,0.4,0.7,0.7,0.7,0.6,0.4,0.4,0.5,0.7,0.7,0.6,0.2,0.7,0.2,0.7,0.6,0.5,0.6,0.4,0.7,0.8,0.9,0.5,0.8,0.1,0.5,0.6,0.7,0.6,0.5,0.6,0.6,0.8,0.3,0.6,0.7,0.6,0.5,0.7,0.7,0.7,0.3,0.6,0.7,0.7,0.7,0.5,0.6,0.7,0.6,0.6,0.8,0.5,0.5,0.7],"y":[0.1,0.6,0.3,0.3,0.1,0.1,0.1,0.1,0.4,0,0.4,0.3,0.3,0.1,0.1,0.5,0.2,0.1,0.3,0,0.1,0.1,0,0.2,0.3,0.3,0.1,0,0.1,0.4,0.6,0.4,0,0.2,0,0.1,0.3,0,0.1,0.7,0.1,0.3,0.3,0.1,0.1,0,0,0.4,0.5,0.2,0.1,0,0,0.1,0.5,0,0.1,0.1,0.5,0.4,0.2,0.1,0.5,0.3,0,0.4,0.3,0.1,0.1,0,0.1,0.2,0.1,0.5,0.1,0.3,0,0.1,0.2,0.1,0.5,0.6,0.1,0.4,0,0,0.1,0.1,0.1,0.2,0.1,0.1,0.3,0.2,0.2,0.4,0.1,0,0.3,0.1,0.2,0.1,0.1,0.1,0.1,0.4,0.1,0.5,0.1,0.3,0.5,0,0.2,0.1,0,0.1,0.1,0.3,0.3,0,0.2,0.2,0,0.1,0.1,0,0.1,0,0.1,0,0.2,0.5,0.1,0,0.3,0,0.5,0,0.1,0.4,0.1,0.4,0.5,0.1,0.2,0.5,0,0.5,0.4,0.1,0.1,0.1,0,0.5,0.1,0.1,0.4,0.1,0,0.2,0,0,0.1,0.5,0.2,0.4,0.4,0.2,0.8,0,0.1,0.4,0.4,0.5,0,0.1,0.5,0.2,0,0.1,0.2,0.2,0.1,0.4,0.2,0.1,0.1,0.1,0.2,0.5,0.2,0.1,0.1,0.1,0,0,0.1,0,0.1,0.3,0.1,0.5,0.4,0.2,0.4,0.3,0.4,0.3,0.1,0,0.5,0.2,0.1,0.1,0.1,0,0.3,0,0.3,0.1,0.1,0.1,0.4,0.2,0,0.4,0,0.2,0,0.1,0.1,0.2,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0,0.1,0.4,0.3,0,0.6,0.1,0.5,0,0.5,0,0.1,0.4,0.1,0.3,0.1,0.5,0.1,0.3,0.1,0.5,0.6,0.2,0.1,0.2,0.1,0,0.1,0.6,0,0,0.5,0.2,0.1,0.1,0.1,0.4,0.2,0,0.3,0,0.2,0,0.2,0,0.1,0.1,0.1,0.1,0,0.1,0.4,0.1,0.6,0.6,0.6,0.5,0.3,0.2,0,0.1,0,0.3,0.1,0.2,0.1,0.1,0.4,0.1,0.3,0.1,0.3,0.2,0.3,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.3,0,0.3,0.1,0.6,0.3,0.3,0.4,0.3,0,0.3,0.1,0.1,0.5,0.5,0.1,0.3,0.2,0.4,0,0.1,0.2,0.4,0.3,0.1,0.1,0.1,0.2,0,0.6,0.1,0.6,0.5,0.1,0.1,0,0,0.3,0.1,0.6,0,0.1,0.1,0,0.8,0.3,0.1,0.5,0.1,0.1,0.5,0,0.1,0.7,0.4,0.1,0,0.4,0.1,0,0.1,0.2,0.1,0.6,0.5,0.3,0,0,0.1,0.1,0.1,0.5,0.5,0.1,0.3,0.5,0.3,0.7,0.2,0.1,0.1,0.2,0.3,0.1,0.6,0.2,0.5,0.1,0,0.1,0.6,0.4,0.2,0.1,0.1,0.2,0,0,0.5,0.1,0.3,0.1,0.1,0.1,0.2,0,0.2,0.1,0.5,0.1,0,0.5,0.6,0.1,0.3,0.4,0.1,0.3,0,0,0.2,0.1,0.1,0.1,0.5,0.7,0.1,0,0.3,0.1,0.1,0.3,0.5,0.1,0.5,0,0.1,0.1,0.1,0.1,0.1,0.6,0.4,0.1,0.1,0.4,0.5,0.1,0.3,0.4,0.1,0.2,0.2,0.5,0.6,0.5,0.3,0.1,0.1,0.1,0.1,0.6,0.2,0.5,0.4,0.1,0.3,0.2,0.5,0.2,0.5,0.3,0.1,0.2,0.3,0.1,0.5,0,0.5,0.4,0.2,0.1,0.1,0.4,0.1,0.5,0,0,0.1,0,0.1,0.4,0,0.2,0.1,0.1,0.1,0,0.1,0,0.2,0.2,0.1,0,0.1,0.4,0,0.2,0.5,0.2,0.2,0,0,0.4,0,0.5,0,0.2,0.1,0,0.1,0.5,0.3,0.1,0.3,0,0.1,0.4,0.4,0.3,0.1,0.6,0.7,0.1,0.6,0.4,0.5,0.2,0.5,0.2,0.2,0.1,0.1,0.1,0,0,0.1,0,0.1,0.1,0.4,0.2,0.1,0,0.1,0.1,0.4,0.2,0.1,0.2,0.1,0,0.1,0.1,0.1,0.5,0.1,0.1,0.3,0.5,0.1,0.1,0.4,0.3,0.2,0.2,0,0.1,0.4,0.1,0.3,0.6,0.1,0,0.4,0.2,0.5,0,0.1,0.2,0.4,0.6,0,0.1,0.6,0.2,0.3,0.4,0.5,0.4,0.1,0.4,0.1,0.5,0.2,0.1,0,0.2,0.3,0.5,0.3,0.4,0.3,0.2,0.1,0.3,0,0.1,0,0,0.1,0.1,0,0.1,0.3,0.7,0.2,0.3,0.3,0.1,0.1,0.1,0,0.1,0.2,0.1,0.1,0.1,0,0,0,0,0.2,0.3,0.1,0,0.3,0,0.1,0.1,0,0,0,0.4,0.2,0.6,0.4,0,0.5,0.3,0,0.3,0.5,0.1,0.1,0,0.5,0.1,0.2,0.5,0.1,0.2,0.1,0.2,0.1,0.4,0.3,0.4,0.3,0.1,0.2,0,0.5,0.1,0.1,0.6,0.4,0.1,0.1,0.1,0.3,0.7,0.1,0,0.4,0.1,0.1,0.2,0.1,0.4,0.1,0.3,0.1,0.3,0.1,0,0.6,0.4,0.4,0.1,0.1,0.4,0.4,0,0.1,0.1,0.1,0.5,0.1,0.1,0.2,0.2,0.4,0.1,0.1,0,0.5,0.1,0.1,0.3,0.1,0.1,0,0.2,0.1,0.1,0.1,0.3,0.1,0,0.4,0.1,0.1,0,0.6,0.2,0.2,0,0,0.2,0.1,0.1,0.6,0,0.3,0.5,0.5,0.1,0.2,0.1,0.2,0.1,0.1,0,0,0.1,0,0.4,0.3,0.2,0.5,0.4,0.3,0.1,0.1,0.2,0,0,0.2,0.1,0.2,0.4,0.1,0.1,0.2,0.2,0.1,0.1,0.6,0.2,0.2,0.1,0.6,0,0.2,0.2,0.5,0.4,0.4,0.1,0.3,0.2,0.1,0,0,0.4,0.5,0.1,0.1,0.1,0,0.2,0.1,0.1,0.1,0.5,0.5,0.2,0.5,0,0.1,0.1,0.7,0.2,0.1,0.1,0.1,0.1,0.4,0.1,0.1,0.1,0,0,0.3,0.5,0.3,0,0.1,0.2,0.5,0.3,0.6,0.6,0.2,0.1,0.1,0.1,0.5,0.4,0.1,0,0.1,0.3,0,0.4,0.1,0.1,0.5,0.6,0,0,0.1,0.5,0.6,0.2,0.2,0.1,0.1,0,0.3,0,0.1,0.1,0.1,0.1,0.2,0.2,0.4,0.1,0.1,0.3,0.4,0.1,0.1,0.1,0.2,0.4,0.4,0,0,0.2,0,0.1,0,0,0.1,0.3,0.1,0.1,0,0,0.5,0.1,0.1,0.1,0.2,0,0.1,0.2,0.1,0.1,0.3,0.5,0.2,0.1,0.4,0.2,0.2,0.2,0.1,0,0.1,0,0.1,0,0,0.1,0.3,0.1,0.5,0.6,0.4,0.1,0.3,0.4,0.2,0.5,0.4,0.1,0.6,0.5,0.1,0,0.2,0,0,0.2,0.1,0.6,0.2,0.3,0.2,0.2,0.5,0.1,0,0.4,0.5,0.4,0.1,0.3,0.6,0.1,0.1,0.6,0.1,0.3,0.2,0,0,0.2,0,0,0.6,0.2,0.6,0.2,0,0.2,0.3,0.2,0.1,0.1,0.4,0.1,0,0,0.1,0.1,0,0.1,0.2,0,0.1,0.1,0.2,0.1,0.5,0.4,0.2,0.1,0.4,0.1,0.3,0.1,0.3,0.6,0.2,0.6,0.1,0.3,0.3,0,0,0,0.1,0,0.1,0.2,0.1,0.5,0.2,0,0.3,0.1,0,0.4,0.4,0.4,0,0.1,0.1,0.1,0.2,0.1,0.2,0,0.1,0,0.1,0.4,0.3,0.1,0.1,0.2,0.3,0.2,0.4,0.4,0.3,0.5,0,0.1,0.1,0.1,0.4,0.1,0,0.1,0.5,0.3,0.1,0.1,0,0.1,0.2,0.1,0,0,0,0.2,0.1,0.1,0.2,0.4,0.2,0,0.3,0.5,0.1,0,0.3,0.1,0.4,0.4,0,0.7,0.5,0.1,0.3,0,0.4,0.1,0.2,0,0.1,0.1,0.1,0.1,0,0.1,0.2,0,0.4,0.1,0.1,0.3,0.2,0.3,0,0.4,0.1,0,0.1,0.1,0.1,0.1,0.1,0.3,0.4,0.2,0.5,0.2,0.1,0.3,0.2,0.1,0.7,0.1,0.3,0.1,0.2,0.4,0.1,0.1,0.1,0,0.1,0.6,0.2,0,0,0.4,0,0.1,0.1,0.1,0.6,0.4,0.2,0.3,0.4,0,0.1,0,0.6,0.1,0.1,0.3,0,0.2,0.3,0.2,0.1,0,0.1,0.4,0.5,0.1],"z":[0,0,0.1,0,0.2,0.2,0.1,0.3,0,0.1,0,0,0,0.1,0.1,0,0.2,0.1,0,0,0.1,0.1,0.2,0.1,0,0,0.1,0,0.2,0.1,0,0,0,0.1,0.1,0.1,0,0.1,0,0,0.2,0,0.1,0.1,0.1,0,0,0,0,0,0.3,0,0,0.1,0,0,0.2,0.1,0,0,0,0.3,0.1,0,0,0.1,0,0.1,0.1,0,0.1,0,0.1,0.1,0.1,0,0,0.2,0,0.2,0,0,0.1,0,0.4,0.1,0.2,0.1,0.1,0.1,0.1,0.1,0,0,0.1,0,0.1,0.2,0.1,0.1,0,0.1,0.1,0.2,0.1,0,0.1,0,0.1,0,0,0,0.2,0.2,0,0.1,0.2,0.1,0,0.3,0,0.1,0.1,0.2,0.1,0.1,0.2,0,0.3,0.1,0.1,0,0.1,0.1,0.1,0.2,0,0,0,0,0.1,0,0,0.2,0,0,0.1,0.1,0,0,0.2,0.1,0.1,0,0.2,0.1,0.1,0.1,0.1,0.1,0.1,0,0.1,0,0,0,0,0,0,0,0.1,0,0,0,0.1,0.2,0,0,0.2,0.2,0.1,0,0,0,0.1,0.2,0.1,0.1,0.2,0,0.1,0,0.2,0.2,0,0.2,0.1,0,0.1,0.2,0.1,0,0,0.1,0,0,0,0,0.1,0.2,0,0.1,0.1,0,0.1,0.2,0.1,0.1,0,0.2,0.1,0.1,0,0.3,0,0,0,0,0.1,0.1,0.1,0.1,0.1,0.2,0.2,0,0.2,0.3,0.2,0.1,0.1,0,0,0.2,0,0.1,0,0,0.1,0.1,0,0,0.1,0.1,0.1,0,0.3,0,0.2,0,0,0.1,0.2,0,0.1,0.2,0.1,0,0.2,0.2,0,0.1,0.2,0.2,0.1,0.1,0,0.2,0,0.1,0,0,0.1,0,0.1,0.2,0.1,0.2,0.2,0.1,0,0.2,0,0,0,0,0,0,0.3,0.2,0.1,0,0,0.1,0.1,0.1,0,0.1,0.1,0.2,0,0.1,0.2,0.1,0.1,0.2,0.3,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0,0.1,0.1,0.1,0,0.2,0.1,0.1,0.1,0,0,0.1,0,0.1,0.1,0.2,0.1,0.1,0.1,0,0.1,0.2,0.1,0,0,0,0.2,0,0.1,0.2,0.1,0.3,0.1,0,0.1,0,0.1,0.1,0.1,0.1,0,0,0.1,0,0,0.1,0,0.2,0.2,0,0,0,0.1,0,0.1,0.1,0,0,0.1,0,0,0.1,0,0,0.1,0,0.1,0,0,0.1,0.1,0,0,0,0,0.1,0.1,0.1,0.1,0.1,0,0.1,0,0.1,0.2,0.1,0,0,0.1,0.2,0.1,0.2,0,0.2,0,0.2,0,0.2,0.1,0.2,0.3,0.2,0,0.2,0,0.1,0.2,0,0,0.1,0,0,0.2,0,0.1,0,0.1,0.2,0.2,0.1,0,0,0.1,0.1,0,0.1,0.1,0.1,0.1,0.1,0.1,0,0.1,0.1,0.2,0.1,0.2,0,0,0.1,0.1,0,0,0.1,0,0,0.1,0,0.1,0,0,0,0.1,0.1,0.1,0.2,0.1,0,0.2,0.1,0,0.1,0.1,0.1,0,0.1,0,0,0.1,0,0.2,0.2,0,0.2,0,0.1,0.1,0.2,0.3,0,0.2,0,0.1,0,0.1,0,0.1,0,0,0.2,0.2,0.1,0.1,0.4,0.1,0.2,0.2,0.2,0.1,0.2,0.1,0,0.2,0.2,0,0.1,0.1,0,0.1,0,0.1,0,0,0.1,0.1,0.1,0.1,0,0,0.1,0.1,0.1,0.1,0,0,0.1,0.1,0,0,0.1,0,0,0,0.1,0,0.1,0.1,0.1,0.1,0.2,0.1,0,0.2,0.1,0.1,0.1,0,0,0.1,0.1,0.1,0.2,0,0.1,0.2,0.2,0.1,0.1,0.2,0.1,0.1,0,0.1,0.1,0,0,0.1,0.2,0,0,0.1,0.1,0,0.2,0,0,0,0,0.1,0.1,0,0.1,0,0,0.2,0.1,0,0,0.1,0.3,0,0.1,0.1,0,0,0,0.1,0,0.1,0,0.1,0.1,0.1,0.1,0,0,0,0.1,0,0.1,0.1,0,0,0.1,0,0.1,0.2,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.2,0.1,0.1,0.1,0.1,0.2,0.1,0,0.1,0.1,0.2,0.1,0.1,0.1,0,0,0.1,0.1,0.2,0,0.3,0,0,0.1,0.1,0.1,0.2,0.1,0,0,0,0,0.1,0.1,0.1,0,0.2,0.1,0.1,0.1,0.1,0.2,0,0.1,0,0,0.1,0,0.2,0.1,0,0,0.1,0.1,0,0,0.1,0.1,0.2,0.1,0,0.2,0.2,0,0,0.2,0.1,0.1,0,0.1,0,0.2,0,0.1,0.1,0,0,0,0.1,0.1,0,0,0.1,0.1,0.1,0.2,0,0.2,0.1,0.1,0,0,0.1,0.1,0.1,0.1,0.1,0.1,0,0.1,0.1,0.2,0.2,0.1,0.1,0.1,0.1,0.1,0.2,0,0.2,0.2,0,0,0,0,0.2,0.2,0,0.1,0.1,0,0,0,0,0,0.1,0.1,0.1,0.1,0.1,0.1,0.2,0.3,0.2,0.2,0,0.1,0,0,0.1,0.1,0.2,0.1,0.1,0,0,0,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.2,0,0,0,0.1,0,0,0,0.1,0,0,0,0.2,0,0.2,0.1,0,0.1,0,0,0.1,0.1,0,0,0.2,0.1,0.1,0.3,0,0.1,0.1,0.1,0.1,0.2,0.1,0,0,0.1,0.1,0.1,0.1,0,0.1,0.2,0.2,0.2,0,0.1,0,0,0.1,0.2,0,0,0,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0,0.1,0.1,0.1,0,0,0,0.2,0.1,0,0,0.1,0.2,0.2,0,0,0.1,0.2,0.1,0.1,0,0.2,0,0.1,0.1,0.1,0.2,0.1,0.2,0.1,0.1,0.1,0,0.1,0.2,0.1,0.2,0.1,0,0,0.2,0.1,0.1,0.2,0.2,0,0.2,0.1,0,0,0.1,0.2,0,0,0,0.1,0.2,0.1,0.1,0.1,0.2,0.1,0.1,0.1,0,0,0,0,0.1,0.1,0.1,0.2,0.4,0.1,0.1,0.1,0.2,0.2,0.2,0,0,0.1,0,0,0.1,0.1,0,0.2,0,0.1,0.2,0,0,0,0.1,0.1,0.1,0.2,0.2,0.1,0,0.1,0.1,0.1,0.1,0,0.2,0.2,0,0,0,0.1,0.1,0,0.1,0.1,0,0.1,0,0,0.2,0,0.1,0.1,0.2,0,0.1,0,0,0,0.1,0.1,0.1,0.1,0.1,0,0.1,0.1,0.2,0.1,0.2,0,0.1,0.2,0,0.2,0.3,0,0.1,0,0,0.1,0.1,0,0.1,0,0.2,0.1,0,0,0,0.2,0.1,0.1,0.1,0,0.1,0.1,0.1,0.1,0.2,0.2,0,0,0.1,0,0.2,0,0,0,0.1,0,0.1,0.1,0.2,0,0,0.1,0.2,0.1,0.2,0.1,0,0,0.1,0.1,0.1,0.1,0.1,0,0.1,0.1,0,0,0.2,0.2,0,0.1,0.1,0,0.2,0,0,0.2,0.3,0,0.1,0.1,0.1,0.2,0.2,0.1,0.1,0.1,0.2,0,0,0.1,0.1,0,0,0.1,0.3,0.1,0.2,0,0.1,0.2,0,0.1,0.1,0,0,0.1,0.2,0.1,0,0.2,0.2,0.2,0.1,0.2,0.1,0.1,0,0.1,0.2,0.1,0.1,0.1,0,0.2,0,0.2,0,0,0.4,0.1,0.2,0.2,0,0,0,0,0,0.1,0.1,0,0.1,0,0.1,0,0.2,0.2,0.1,0.1,0.1,0.1,0,0.1,0,0,0,0.1,0,0,0.2,0.1,0.1,0,0,0.1,0,0,0.1,0.1,0.1,0,0.3,0.1,0,0.2,0,0,0,0.3,0.2,0.1,0,0,0.2],"type":"scatter3d","mode":"markers","marker":{"colorbar":{"title":"cluster","ticklen":2},"cmin":1,"cmax":3,"colorscale":[["0","rgba(68,1,84,1)"],["0","rgba(68,1,84,1)"],["0","rgba(68,1,84,1)"],["0","rgba(68,1,84,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["1","rgba(253,231,37,1)"],["1","rgba(253,231,37,1)"],["1","rgba(253,231,37,1)"],["1","rgba(253,231,37,1)"],["1","rgba(253,231,37,1)"],["1","rgba(253,231,37,1)"],["1","rgba(253,231,37,1)"]],"showscale":false,"color":[2,1,3,3,2,2,2,2,3,2,3,3,3,2,2,3,2,2,3,1,2,2,1,2,3,3,2,2,2,3,1,3,1,2,2,2,3,2,2,1,2,3,3,2,2,1,2,3,3,2,2,1,2,2,3,2,2,2,3,1,1,2,3,3,2,1,1,2,2,1,2,3,2,3,3,3,1,2,2,2,3,1,2,3,2,2,2,2,2,2,2,2,3,1,2,3,2,2,2,2,1,2,2,2,2,3,2,3,2,3,3,1,2,2,2,2,2,3,3,2,1,2,2,2,2,2,2,1,2,2,2,3,2,2,3,2,1,1,2,3,2,3,3,2,2,3,2,3,3,2,2,2,2,3,2,2,3,2,2,2,2,2,2,3,1,3,3,1,1,1,2,3,3,3,2,2,3,2,2,2,2,1,2,3,2,2,2,3,2,3,2,3,2,2,1,1,2,1,2,3,2,1,3,2,3,3,3,3,2,2,3,3,2,2,2,2,3,2,3,2,2,2,3,1,1,3,1,3,2,2,2,2,2,2,2,2,2,2,2,2,2,3,3,2,1,2,3,2,1,2,2,3,2,3,2,3,3,3,2,3,1,2,2,1,2,2,3,1,2,2,3,2,2,2,2,3,1,2,3,2,3,1,2,1,2,2,2,2,2,2,3,2,1,1,1,3,3,1,1,2,2,3,2,2,2,2,3,2,3,2,3,2,3,2,2,2,3,2,2,2,3,2,3,2,1,3,3,3,3,1,3,2,2,3,3,2,3,2,3,2,2,2,3,3,2,2,2,3,1,1,2,1,3,2,2,1,2,3,2,1,2,2,2,2,1,3,2,3,2,2,3,1,2,1,3,2,2,1,2,2,2,1,2,1,3,3,1,1,2,3,2,3,3,2,3,3,3,1,1,2,2,2,3,2,1,2,3,2,2,2,1,3,2,2,2,2,1,2,3,2,3,2,2,2,3,2,1,2,3,2,1,3,1,2,3,3,2,3,2,1,2,2,2,2,3,1,2,2,3,2,2,3,3,2,3,1,2,2,2,2,2,1,3,2,2,3,3,2,3,3,2,2,2,3,1,3,3,2,2,2,2,1,2,3,3,1,3,2,3,2,3,3,2,3,3,2,3,2,3,3,2,2,2,3,2,1,2,1,2,1,2,3,1,2,2,2,2,2,2,2,2,2,2,2,2,3,2,1,3,3,2,1,2,3,2,1,2,2,2,2,2,3,3,2,2,1,2,3,3,1,2,1,1,2,1,3,3,2,3,2,2,2,2,2,2,1,2,2,2,2,3,2,2,2,2,2,3,2,2,2,2,2,2,2,2,3,2,2,3,3,2,2,3,3,2,2,1,2,3,2,3,1,2,2,3,2,3,1,2,3,3,1,2,1,1,2,3,3,3,3,2,3,2,3,2,2,2,2,3,3,3,3,3,2,3,3,1,2,1,2,2,2,2,2,3,1,2,3,3,2,2,2,2,2,2,2,2,2,1,2,2,1,2,3,2,1,3,2,2,2,2,2,2,3,2,1,3,2,3,3,1,3,3,2,2,2,3,2,3,1,2,2,2,2,2,3,3,3,3,2,2,1,3,2,2,1,3,2,2,2,3,1,2,1,3,2,2,2,2,3,2,3,2,3,2,2,1,3,3,2,2,3,3,2,2,2,2,3,2,2,2,3,3,2,2,2,3,2,2,3,2,2,2,2,2,2,2,3,2,1,3,2,2,2,1,2,1,2,2,1,2,2,1,2,3,3,3,2,2,2,2,2,2,1,2,2,2,3,3,1,3,3,3,2,2,2,1,1,2,2,2,3,2,2,2,2,2,2,1,1,1,2,1,1,2,2,1,3,3,2,3,2,2,2,2,3,1,2,2,2,1,2,2,2,2,3,3,2,3,2,2,2,1,2,2,2,2,2,3,2,2,2,1,1,3,3,3,2,2,2,3,3,1,1,2,2,2,2,3,3,2,2,2,3,1,3,2,2,3,1,2,2,2,3,1,2,2,2,2,1,3,1,2,2,2,2,2,1,3,2,2,3,3,2,2,2,2,3,3,2,2,2,2,2,1,2,2,3,2,2,1,1,3,2,2,2,2,2,2,2,2,2,3,3,1,2,3,2,2,2,2,1,2,2,2,1,2,2,3,2,3,1,3,2,3,3,2,1,3,2,1,3,2,2,2,2,2,2,2,1,2,3,2,2,1,2,1,3,3,3,2,3,1,2,2,1,2,3,2,2,1,2,2,1,1,2,1,1,1,2,3,2,2,2,3,2,2,1,2,2,1,2,2,1,2,2,1,2,3,3,2,3,3,2,3,2,3,1,2,1,2,3,3,2,1,2,2,2,2,2,2,3,2,2,3,2,1,3,3,3,1,2,2,2,2,2,2,2,2,1,3,3,3,2,2,2,3,2,3,3,3,3,1,2,2,2,3,1,2,2,3,3,2,2,2,2,2,2,2,2,2,2,2,2,2,3,2,2,3,3,2,2,3,2,1,3,2,1,3,2,3,1,3,2,2,1,2,2,2,2,2,2,2,2,3,2,2,3,2,3,1,3,2,1,2,1,2,2,2,3,3,3,3,2,2,3,1,2,1,2,3,2,2,3,2,2,2,1,2,1,3,2,2,3,1,2,2,2,1,3,2,3,3,2,2,2,1,2,2,3,2,3,3,2,2,2,2,3,3,2],"line":{"colorbar":{"title":"","ticklen":2},"cmin":1,"cmax":3,"colorscale":[["0","rgba(68,1,84,1)"],["0","rgba(68,1,84,1)"],["0","rgba(68,1,84,1)"],["0","rgba(68,1,84,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["1","rgba(253,231,37,1)"],["1","rgba(253,231,37,1)"],["1","rgba(253,231,37,1)"],["1","rgba(253,231,37,1)"],["1","rgba(253,231,37,1)"],["1","rgba(253,231,37,1)"],["1","rgba(253,231,37,1)"]],"showscale":false,"color":[2,1,3,3,2,2,2,2,3,2,3,3,3,2,2,3,2,2,3,1,2,2,1,2,3,3,2,2,2,3,1,3,1,2,2,2,3,2,2,1,2,3,3,2,2,1,2,3,3,2,2,1,2,2,3,2,2,2,3,1,1,2,3,3,2,1,1,2,2,1,2,3,2,3,3,3,1,2,2,2,3,1,2,3,2,2,2,2,2,2,2,2,3,1,2,3,2,2,2,2,1,2,2,2,2,3,2,3,2,3,3,1,2,2,2,2,2,3,3,2,1,2,2,2,2,2,2,1,2,2,2,3,2,2,3,2,1,1,2,3,2,3,3,2,2,3,2,3,3,2,2,2,2,3,2,2,3,2,2,2,2,2,2,3,1,3,3,1,1,1,2,3,3,3,2,2,3,2,2,2,2,1,2,3,2,2,2,3,2,3,2,3,2,2,1,1,2,1,2,3,2,1,3,2,3,3,3,3,2,2,3,3,2,2,2,2,3,2,3,2,2,2,3,1,1,3,1,3,2,2,2,2,2,2,2,2,2,2,2,2,2,3,3,2,1,2,3,2,1,2,2,3,2,3,2,3,3,3,2,3,1,2,2,1,2,2,3,1,2,2,3,2,2,2,2,3,1,2,3,2,3,1,2,1,2,2,2,2,2,2,3,2,1,1,1,3,3,1,1,2,2,3,2,2,2,2,3,2,3,2,3,2,3,2,2,2,3,2,2,2,3,2,3,2,1,3,3,3,3,1,3,2,2,3,3,2,3,2,3,2,2,2,3,3,2,2,2,3,1,1,2,1,3,2,2,1,2,3,2,1,2,2,2,2,1,3,2,3,2,2,3,1,2,1,3,2,2,1,2,2,2,1,2,1,3,3,1,1,2,3,2,3,3,2,3,3,3,1,1,2,2,2,3,2,1,2,3,2,2,2,1,3,2,2,2,2,1,2,3,2,3,2,2,2,3,2,1,2,3,2,1,3,1,2,3,3,2,3,2,1,2,2,2,2,3,1,2,2,3,2,2,3,3,2,3,1,2,2,2,2,2,1,3,2,2,3,3,2,3,3,2,2,2,3,1,3,3,2,2,2,2,1,2,3,3,1,3,2,3,2,3,3,2,3,3,2,3,2,3,3,2,2,2,3,2,1,2,1,2,1,2,3,1,2,2,2,2,2,2,2,2,2,2,2,2,3,2,1,3,3,2,1,2,3,2,1,2,2,2,2,2,3,3,2,2,1,2,3,3,1,2,1,1,2,1,3,3,2,3,2,2,2,2,2,2,1,2,2,2,2,3,2,2,2,2,2,3,2,2,2,2,2,2,2,2,3,2,2,3,3,2,2,3,3,2,2,1,2,3,2,3,1,2,2,3,2,3,1,2,3,3,1,2,1,1,2,3,3,3,3,2,3,2,3,2,2,2,2,3,3,3,3,3,2,3,3,1,2,1,2,2,2,2,2,3,1,2,3,3,2,2,2,2,2,2,2,2,2,1,2,2,1,2,3,2,1,3,2,2,2,2,2,2,3,2,1,3,2,3,3,1,3,3,2,2,2,3,2,3,1,2,2,2,2,2,3,3,3,3,2,2,1,3,2,2,1,3,2,2,2,3,1,2,1,3,2,2,2,2,3,2,3,2,3,2,2,1,3,3,2,2,3,3,2,2,2,2,3,2,2,2,3,3,2,2,2,3,2,2,3,2,2,2,2,2,2,2,3,2,1,3,2,2,2,1,2,1,2,2,1,2,2,1,2,3,3,3,2,2,2,2,2,2,1,2,2,2,3,3,1,3,3,3,2,2,2,1,1,2,2,2,3,2,2,2,2,2,2,1,1,1,2,1,1,2,2,1,3,3,2,3,2,2,2,2,3,1,2,2,2,1,2,2,2,2,3,3,2,3,2,2,2,1,2,2,2,2,2,3,2,2,2,1,1,3,3,3,2,2,2,3,3,1,1,2,2,2,2,3,3,2,2,2,3,1,3,2,2,3,1,2,2,2,3,1,2,2,2,2,1,3,1,2,2,2,2,2,1,3,2,2,3,3,2,2,2,2,3,3,2,2,2,2,2,1,2,2,3,2,2,1,1,3,2,2,2,2,2,2,2,2,2,3,3,1,2,3,2,2,2,2,1,2,2,2,1,2,2,3,2,3,1,3,2,3,3,2,1,3,2,1,3,2,2,2,2,2,2,2,1,2,3,2,2,1,2,1,3,3,3,2,3,1,2,2,1,2,3,2,2,1,2,2,1,1,2,1,1,1,2,3,2,2,2,3,2,2,1,2,2,1,2,2,1,2,2,1,2,3,3,2,3,3,2,3,2,3,1,2,1,2,3,3,2,1,2,2,2,2,2,2,3,2,2,3,2,1,3,3,3,1,2,2,2,2,2,2,2,2,1,3,3,3,2,2,2,3,2,3,3,3,3,1,2,2,2,3,1,2,2,3,3,2,2,2,2,2,2,2,2,2,2,2,2,2,3,2,2,3,3,2,2,3,2,1,3,2,1,3,2,3,1,3,2,2,1,2,2,2,2,2,2,2,2,3,2,2,3,2,3,1,3,2,1,2,1,2,2,2,3,3,3,3,2,2,3,1,2,1,2,3,2,2,3,2,2,2,1,2,1,3,2,2,3,1,2,2,2,1,3,2,3,3,2,2,2,1,2,2,3,2,3,3,2,2,2,2,3,3,2]}},"frame":null},{"x":[0,0.9],"y":[0,0.8],"type":"scatter3d","mode":"markers","opacity":0,"hoverinfo":"none","showlegend":false,"marker":{"colorbar":{"title":"cluster","ticklen":2,"len":0.5,"lenmode":"fraction","y":1,"yanchor":"top"},"cmin":1,"cmax":3,"colorscale":[["0","rgba(68,1,84,1)"],["0","rgba(68,1,84,1)"],["0","rgba(68,1,84,1)"],["0","rgba(68,1,84,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["0.5","rgba(37,144,140,1)"],["1","rgba(253,231,37,1)"],["1","rgba(253,231,37,1)"],["1","rgba(253,231,37,1)"],["1","rgba(253,231,37,1)"],["1","rgba(253,231,37,1)"],["1","rgba(253,231,37,1)"],["1","rgba(253,231,37,1)"]],"showscale":true,"color":[1,3],"line":{"color":"rgba(255,127,14,1)"}},"z":[0,0.4],"frame":null}],"highlight":{"on":"plotly_click","persistent":false,"dynamic":false,"selectize":false,"opacityDim":0.2,"selected":{"opacity":1},"debounce":0},"base_url":"https://plot.ly"},"evals":["config.modeBarButtonsToAdd.0.click"],"jsHooks":[]}</script>
+<p>But I guess the interesting thing to note is the characteristics of each cluster.</p>
+<table>
+<thead>
+<tr class="header">
+<th align="right">cluster</th>
+<th align="right">defl</th>
+<th align="right">back</th>
+<th align="right">wrist</th>
+<th align="right">slap</th>
+<th align="right">snap</th>
+<th align="right">tip</th>
+<th align="right">wrap</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">1</td>
+<td align="right">0.7017544</td>
+<td align="right">3.421053</td>
+<td align="right">26.18421</td>
+<td align="right">32.36842</td>
+<td align="right">10.8771930</td>
+<td align="right">10.8771930</td>
+<td align="right">10.8771930</td>
+</tr>
+<tr class="even">
+<td align="right">2</td>
+<td align="right">2.5572139</td>
+<td align="right">12.587065</td>
+<td align="right">68.90547</td>
+<td align="right">10.44776</td>
+<td align="right">0.7562189</td>
+<td align="right">0.7562189</td>
+<td align="right">0.7562189</td>
+</tr>
+<tr class="odd">
+<td align="right">3</td>
+<td align="right">0.3966597</td>
+<td align="right">3.089770</td>
+<td align="right">52.56785</td>
+<td align="right">38.01670</td>
+<td align="right">0.8977035</td>
+<td align="right">0.8977035</td>
+<td align="right">0.8977035</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr class="header">
+<th align="right">cluster</th>
+<th align="right">D</th>
+<th align="right">C</th>
+<th align="right">L</th>
+<th align="right">R</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">1</td>
+<td align="right">60.526316</td>
+<td align="right">16.228070</td>
+<td align="right">9.210526</td>
+<td align="right">9.210526</td>
+</tr>
+<tr class="even">
+<td align="right">2</td>
+<td align="right">3.482587</td>
+<td align="right">46.069652</td>
+<td align="right">25.671642</td>
+<td align="right">22.786070</td>
+</tr>
+<tr class="odd">
+<td align="right">3</td>
+<td align="right">78.914405</td>
+<td align="right">8.350731</td>
+<td align="right">5.636743</td>
+<td align="right">5.010438</td>
+</tr>
+</tbody>
+</table>
+<p>The two tables above show the percentage of different types of shots within each cluster, and the percentage of types of player within each cluster.</p>
+<div id="cluster-1" class="section level3">
+<h3>Cluster 1:</h3>
+<p>Cluster 1 has 60% defensemen, and 16% centers. The type of shots taken in this cluster is quite varied - 32% slapshots, 26% wrist shots, and 11% each of snap, tip and wraparounds.</p>
+<p>Notable players in Cluster 1: <strong>PK Subban, Drew Doughty, Shea Weber, Duncan Keith</strong>…</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">shooterName</th>
+<th align="right">defl</th>
+<th align="right">back</th>
+<th align="right">wrist</th>
+<th align="right">slap</th>
+<th align="right">snap</th>
+<th align="right">tip</th>
+<th align="right">wrap</th>
+<th align="right">tot</th>
+<th align="right">cluster</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">P.K. Subban</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0.3</td>
+<td align="right">0.6</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">798</td>
+<td align="right">1</td>
+</tr>
+<tr class="even">
+<td align="left">Drew Doughty</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0.4</td>
+<td align="right">0.6</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">776</td>
+<td align="right">1</td>
+</tr>
+<tr class="odd">
+<td align="left">Shayne Gostisbehere</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0.4</td>
+<td align="right">0.6</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">737</td>
+<td align="right">1</td>
+</tr>
+<tr class="even">
+<td align="left">Aaron Ekblad</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0.4</td>
+<td align="right">0.6</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">694</td>
+<td align="right">1</td>
+</tr>
+<tr class="odd">
+<td align="left">Shea Weber</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0.4</td>
+<td align="right">0.6</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">672</td>
+<td align="right">1</td>
+</tr>
+<tr class="even">
+<td align="left">Duncan Keith</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0.2</td>
+<td align="right">0.8</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">669</td>
+<td align="right">1</td>
+</tr>
+<tr class="odd">
+<td align="left">Keith Yandle</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0.4</td>
+<td align="right">0.6</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">646</td>
+<td align="right">1</td>
+</tr>
+<tr class="even">
+<td align="left">Johnny Boychuk</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0.3</td>
+<td align="right">0.7</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">636</td>
+<td align="right">1</td>
+</tr>
+<tr class="odd">
+<td align="left">Ryan Ellis</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0.4</td>
+<td align="right">0.6</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">628</td>
+<td align="right">1</td>
+</tr>
+<tr class="even">
+<td align="left">Justin Faulk</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0.4</td>
+<td align="right">0.6</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">618</td>
+<td align="right">1</td>
+</tr>
+<tr class="odd">
+<td align="left">Brent Seabrook</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0.2</td>
+<td align="right">0.8</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">606</td>
+<td align="right">1</td>
+</tr>
+<tr class="even">
+<td align="left">Matt Dumba</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0.4</td>
+<td align="right">0.6</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">601</td>
+<td align="right">1</td>
+</tr>
+<tr class="odd">
+<td align="left">Dion Phaneuf</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0.4</td>
+<td align="right">0.6</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">582</td>
+<td align="right">1</td>
+</tr>
+<tr class="even">
+<td align="left">Oscar Klefbom</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0.4</td>
+<td align="right">0.6</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">556</td>
+<td align="right">1</td>
+</tr>
+<tr class="odd">
+<td align="left">Sami Vatanen</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0.4</td>
+<td align="right">0.6</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">520</td>
+<td align="right">1</td>
+</tr>
+<tr class="even">
+<td align="left">Michael Stone</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0.4</td>
+<td align="right">0.6</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">504</td>
+<td align="right">1</td>
+</tr>
+<tr class="odd">
+<td align="left">Colin Miller</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0.4</td>
+<td align="right">0.6</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">499</td>
+<td align="right">1</td>
+</tr>
+<tr class="even">
+<td align="left">Francois Beauchemin</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0.3</td>
+<td align="right">0.6</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">475</td>
+<td align="right">1</td>
+</tr>
+<tr class="odd">
+<td align="left">Damon Severson</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0.4</td>
+<td align="right">0.6</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">347</td>
+<td align="right">1</td>
+</tr>
+<tr class="even">
+<td align="left">Roman Polak</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0.4</td>
+<td align="right">0.6</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">298</td>
+<td align="right">1</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="cluster-2" class="section level3">
+<h3>Cluster 2:</h3>
+<p>Cluster 2 is the forwards cluster - only 3% are defensemen here. 68% of the shots taken in this group are wrist shots, with pretty small numbers of any other type.</p>
+<p>Notable players in Cluster 2: <strong>Sidney Crosby, Blake Wheeler, Nathan MacKinnon, Phil Kessel</strong>…</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">shooterName</th>
+<th align="right">defl</th>
+<th align="right">back</th>
+<th align="right">wrist</th>
+<th align="right">slap</th>
+<th align="right">snap</th>
+<th align="right">tip</th>
+<th align="right">wrap</th>
+<th align="right">tot</th>
+<th align="right">cluster</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Vladimir Tarasenko</td>
+<td align="right">0.0</td>
+<td align="right">0.1</td>
+<td align="right">0.9</td>
+<td align="right">0.1</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">1189</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">Patrick Kane</td>
+<td align="right">0.0</td>
+<td align="right">0.1</td>
+<td align="right">0.7</td>
+<td align="right">0.1</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">1029</td>
+<td align="right">2</td>
+</tr>
+<tr class="odd">
+<td align="left">Filip Forsberg</td>
+<td align="right">0.0</td>
+<td align="right">0.1</td>
+<td align="right">0.8</td>
+<td align="right">0.1</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">987</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">Blake Wheeler</td>
+<td align="right">0.1</td>
+<td align="right">0.1</td>
+<td align="right">0.7</td>
+<td align="right">0.2</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">953</td>
+<td align="right">2</td>
+</tr>
+<tr class="odd">
+<td align="left">Nathan MacKinnon</td>
+<td align="right">0.0</td>
+<td align="right">0.1</td>
+<td align="right">0.7</td>
+<td align="right">0.1</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">933</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">James Neal</td>
+<td align="right">0.0</td>
+<td align="right">0.1</td>
+<td align="right">0.8</td>
+<td align="right">0.1</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">921</td>
+<td align="right">2</td>
+</tr>
+<tr class="odd">
+<td align="left">Max Pacioretty</td>
+<td align="right">0.0</td>
+<td align="right">0.1</td>
+<td align="right">0.8</td>
+<td align="right">0.1</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">905</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">Sidney Crosby</td>
+<td align="right">0.0</td>
+<td align="right">0.2</td>
+<td align="right">0.7</td>
+<td align="right">0.1</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">902</td>
+<td align="right">2</td>
+</tr>
+<tr class="odd">
+<td align="left">Evander Kane</td>
+<td align="right">0.0</td>
+<td align="right">0.1</td>
+<td align="right">0.8</td>
+<td align="right">0.1</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">897</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">Phil Kessel</td>
+<td align="right">0.0</td>
+<td align="right">0.1</td>
+<td align="right">0.9</td>
+<td align="right">0.1</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">879</td>
+<td align="right">2</td>
+</tr>
+<tr class="odd">
+<td align="left">Artemi Panarin</td>
+<td align="right">0.0</td>
+<td align="right">0.1</td>
+<td align="right">0.7</td>
+<td align="right">0.3</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">819</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">Jack Eichel</td>
+<td align="right">0.0</td>
+<td align="right">0.1</td>
+<td align="right">0.7</td>
+<td align="right">0.1</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">819</td>
+<td align="right">2</td>
+</tr>
+<tr class="odd">
+<td align="left">John Tavares</td>
+<td align="right">0.0</td>
+<td align="right">0.1</td>
+<td align="right">0.7</td>
+<td align="right">0.1</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">818</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">Patric Hornqvist</td>
+<td align="right">0.0</td>
+<td align="right">0.1</td>
+<td align="right">0.8</td>
+<td align="right">0.1</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">815</td>
+<td align="right">2</td>
+</tr>
+<tr class="odd">
+<td align="left">Jeff Skinner</td>
+<td align="right">0.0</td>
+<td align="right">0.2</td>
+<td align="right">0.5</td>
+<td align="right">0.2</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">792</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">Evgeni Malkin</td>
+<td align="right">0.0</td>
+<td align="right">0.1</td>
+<td align="right">0.6</td>
+<td align="right">0.2</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">791</td>
+<td align="right">2</td>
+</tr>
+<tr class="odd">
+<td align="left">Patrice Bergeron</td>
+<td align="right">0.0</td>
+<td align="right">0.1</td>
+<td align="right">0.8</td>
+<td align="right">0.1</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">790</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">Evgeny Kuznetsov</td>
+<td align="right">0.0</td>
+<td align="right">0.1</td>
+<td align="right">0.8</td>
+<td align="right">0.1</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">763</td>
+<td align="right">2</td>
+</tr>
+<tr class="odd">
+<td align="left">Jakob Silfverberg</td>
+<td align="right">0.0</td>
+<td align="right">0.1</td>
+<td align="right">0.7</td>
+<td align="right">0.2</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">762</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">Nikolaj Ehlers</td>
+<td align="right">0.0</td>
+<td align="right">0.1</td>
+<td align="right">0.7</td>
+<td align="right">0.2</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">760</td>
+<td align="right">2</td>
+</tr>
+</tbody>
+</table>
+<p>Defensemen in Cluster 2 include: <strong>John Klingberg, Morgan Reilly, Brian Dumoulin, Justin Holl</strong>…</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">shooterName</th>
+<th align="right">defl</th>
+<th align="right">back</th>
+<th align="right">wrist</th>
+<th align="right">slap</th>
+<th align="right">snap</th>
+<th align="right">tip</th>
+<th align="right">wrap</th>
+<th align="right">tot</th>
+<th align="right">cluster</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">John Klingberg</td>
+<td align="right">0</td>
+<td align="right">0.1</td>
+<td align="right">0.7</td>
+<td align="right">0.3</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">657</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">Morgan Rielly</td>
+<td align="right">0</td>
+<td align="right">0.0</td>
+<td align="right">0.8</td>
+<td align="right">0.2</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">541</td>
+<td align="right">2</td>
+</tr>
+<tr class="odd">
+<td align="left">Zach Werenski</td>
+<td align="right">0</td>
+<td align="right">0.0</td>
+<td align="right">0.7</td>
+<td align="right">0.2</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">460</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">Brian Dumoulin</td>
+<td align="right">0</td>
+<td align="right">0.0</td>
+<td align="right">0.7</td>
+<td align="right">0.2</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">423</td>
+<td align="right">2</td>
+</tr>
+<tr class="odd">
+<td align="left">Sebastian Aho</td>
+<td align="right">0</td>
+<td align="right">0.2</td>
+<td align="right">0.6</td>
+<td align="right">0.2</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">412</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">Shea Theodore</td>
+<td align="right">0</td>
+<td align="right">0.0</td>
+<td align="right">0.8</td>
+<td align="right">0.2</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">393</td>
+<td align="right">2</td>
+</tr>
+<tr class="odd">
+<td align="left">Jakob Chychrun</td>
+<td align="right">0</td>
+<td align="right">0.0</td>
+<td align="right">0.7</td>
+<td align="right">0.2</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">278</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">Tony DeAngelo</td>
+<td align="right">0</td>
+<td align="right">0.0</td>
+<td align="right">0.7</td>
+<td align="right">0.2</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">145</td>
+<td align="right">2</td>
+</tr>
+<tr class="odd">
+<td align="left">Nikita Tryamkin</td>
+<td align="right">0</td>
+<td align="right">0.0</td>
+<td align="right">0.7</td>
+<td align="right">0.2</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">119</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">Victor Mete</td>
+<td align="right">0</td>
+<td align="right">0.0</td>
+<td align="right">0.7</td>
+<td align="right">0.2</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">60</td>
+<td align="right">2</td>
+</tr>
+<tr class="odd">
+<td align="left">Ben Harpur</td>
+<td align="right">0</td>
+<td align="right">0.1</td>
+<td align="right">0.8</td>
+<td align="right">0.1</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">55</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">Paul LaDue</td>
+<td align="right">0</td>
+<td align="right">0.1</td>
+<td align="right">0.7</td>
+<td align="right">0.2</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">51</td>
+<td align="right">2</td>
+</tr>
+<tr class="odd">
+<td align="left">Luke Witkowski</td>
+<td align="right">0</td>
+<td align="right">0.1</td>
+<td align="right">0.6</td>
+<td align="right">0.2</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">49</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">Mike Weber</td>
+<td align="right">0</td>
+<td align="right">0.0</td>
+<td align="right">0.7</td>
+<td align="right">0.2</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">49</td>
+<td align="right">2</td>
+</tr>
+<tr class="odd">
+<td align="left">Brendan Guhle</td>
+<td align="right">0</td>
+<td align="right">0.1</td>
+<td align="right">0.6</td>
+<td align="right">0.2</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">44</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">Stefan Elliott</td>
+<td align="right">0</td>
+<td align="right">0.1</td>
+<td align="right">0.8</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">43</td>
+<td align="right">2</td>
+</tr>
+<tr class="odd">
+<td align="left">Nick Seeler</td>
+<td align="right">0</td>
+<td align="right">0.0</td>
+<td align="right">0.7</td>
+<td align="right">0.2</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">27</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">Petteri Lindbohm</td>
+<td align="right">0</td>
+<td align="right">0.0</td>
+<td align="right">0.8</td>
+<td align="right">0.1</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">25</td>
+<td align="right">2</td>
+</tr>
+<tr class="odd">
+<td align="left">Brandon Gormley</td>
+<td align="right">0</td>
+<td align="right">0.0</td>
+<td align="right">0.6</td>
+<td align="right">0.2</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">21</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">Mark Alt</td>
+<td align="right">0</td>
+<td align="right">0.0</td>
+<td align="right">0.7</td>
+<td align="right">0.2</td>
+<td align="right">0.1</td>
+<td align="right">0.1</td>
+<td align="right">0.1</td>
+<td align="right">18</td>
+<td align="right">2</td>
+</tr>
+<tr class="odd">
+<td align="left">Andrey Pedan</td>
+<td align="right">0</td>
+<td align="right">0.0</td>
+<td align="right">0.6</td>
+<td align="right">0.2</td>
+<td align="right">0.1</td>
+<td align="right">0.1</td>
+<td align="right">0.1</td>
+<td align="right">17</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">Rasmus Andersson</td>
+<td align="right">0</td>
+<td align="right">0.0</td>
+<td align="right">0.7</td>
+<td align="right">0.1</td>
+<td align="right">0.1</td>
+<td align="right">0.1</td>
+<td align="right">0.1</td>
+<td align="right">16</td>
+<td align="right">2</td>
+</tr>
+<tr class="odd">
+<td align="left">TJ Brennan</td>
+<td align="right">0</td>
+<td align="right">0.0</td>
+<td align="right">0.6</td>
+<td align="right">0.1</td>
+<td align="right">0.1</td>
+<td align="right">0.1</td>
+<td align="right">0.1</td>
+<td align="right">14</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">Jordan Schmaltz</td>
+<td align="right">0</td>
+<td align="right">0.0</td>
+<td align="right">0.6</td>
+<td align="right">0.2</td>
+<td align="right">0.1</td>
+<td align="right">0.1</td>
+<td align="right">0.1</td>
+<td align="right">13</td>
+<td align="right">2</td>
+</tr>
+<tr class="odd">
+<td align="left">Brady Austin</td>
+<td align="right">0</td>
+<td align="right">0.0</td>
+<td align="right">0.6</td>
+<td align="right">0.1</td>
+<td align="right">0.1</td>
+<td align="right">0.1</td>
+<td align="right">0.1</td>
+<td align="right">11</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">Andreas Englund</td>
+<td align="right">0</td>
+<td align="right">0.0</td>
+<td align="right">0.6</td>
+<td align="right">0.0</td>
+<td align="right">0.1</td>
+<td align="right">0.1</td>
+<td align="right">0.1</td>
+<td align="right">8</td>
+<td align="right">2</td>
+</tr>
+<tr class="odd">
+<td align="left">Chris Summers</td>
+<td align="right">0</td>
+<td align="right">0.0</td>
+<td align="right">0.5</td>
+<td align="right">0.1</td>
+<td align="right">0.1</td>
+<td align="right">0.1</td>
+<td align="right">0.1</td>
+<td align="right">8</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">Philip Samuelsson</td>
+<td align="right">0</td>
+<td align="right">0.0</td>
+<td align="right">0.5</td>
+<td align="right">0.1</td>
+<td align="right">0.1</td>
+<td align="right">0.1</td>
+<td align="right">0.1</td>
+<td align="right">8</td>
+<td align="right">2</td>
+</tr>
+<tr class="odd">
+<td align="left">Justin Holl</td>
+<td align="right">0</td>
+<td align="right">0.1</td>
+<td align="right">0.4</td>
+<td align="right">0.0</td>
+<td align="right">0.1</td>
+<td align="right">0.1</td>
+<td align="right">0.1</td>
+<td align="right">7</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">Michael Kapla</td>
+<td align="right">0</td>
+<td align="right">0.0</td>
+<td align="right">0.6</td>
+<td align="right">0.0</td>
+<td align="right">0.1</td>
+<td align="right">0.1</td>
+<td align="right">0.1</td>
+<td align="right">7</td>
+<td align="right">2</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="cluster-3" class="section level3">
+<h3>Cluster 3:</h3>
+<p>Cluster 3 is even more overwhelmingly defensemen than Cluster 1 - 79%! The distribution of shot types is quite similar to Cluster 1 - but there is less variation and a higher percentage of wrist and slapshots. However when you look at the names, some interesting ones come up:</p>
+<p>Notable players in Cluster 3: <strong>Alex Ovechkin, Tyler Seguin, Brent Burns, Erik Karlsson</strong>…</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">shooterName</th>
+<th align="right">defl</th>
+<th align="right">back</th>
+<th align="right">wrist</th>
+<th align="right">slap</th>
+<th align="right">snap</th>
+<th align="right">tip</th>
+<th align="right">wrap</th>
+<th align="right">tot</th>
+<th align="right">cluster</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Alex Ovechkin</td>
+<td align="right">0.0</td>
+<td align="right">0.1</td>
+<td align="right">0.6</td>
+<td align="right">0.4</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">1480</td>
+<td align="right">3</td>
+</tr>
+<tr class="even">
+<td align="left">Brent Burns</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.5</td>
+<td align="right">0.4</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">1349</td>
+<td align="right">3</td>
+</tr>
+<tr class="odd">
+<td align="left">Roman Josi</td>
+<td align="right">0.0</td>
+<td align="right">0.1</td>
+<td align="right">0.5</td>
+<td align="right">0.4</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">1019</td>
+<td align="right">3</td>
+</tr>
+<tr class="even">
+<td align="left">Tyler Seguin</td>
+<td align="right">0.0</td>
+<td align="right">0.1</td>
+<td align="right">0.6</td>
+<td align="right">0.3</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">1003</td>
+<td align="right">3</td>
+</tr>
+<tr class="odd">
+<td align="left">Nikita Kucherov</td>
+<td align="right">0.0</td>
+<td align="right">0.1</td>
+<td align="right">0.6</td>
+<td align="right">0.3</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">958</td>
+<td align="right">3</td>
+</tr>
+<tr class="even">
+<td align="left">Erik Karlsson</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.5</td>
+<td align="right">0.5</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">938</td>
+<td align="right">3</td>
+</tr>
+<tr class="odd">
+<td align="left">Dustin Byfuglien</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.4</td>
+<td align="right">0.5</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">920</td>
+<td align="right">3</td>
+</tr>
+<tr class="even">
+<td align="left">Joe Pavelski</td>
+<td align="right">0.1</td>
+<td align="right">0.1</td>
+<td align="right">0.5</td>
+<td align="right">0.2</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">890</td>
+<td align="right">3</td>
+</tr>
+<tr class="odd">
+<td align="left">Victor Hedman</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.5</td>
+<td align="right">0.5</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">884</td>
+<td align="right">3</td>
+</tr>
+<tr class="even">
+<td align="left">John Carlson</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.5</td>
+<td align="right">0.5</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">876</td>
+<td align="right">3</td>
+</tr>
+<tr class="odd">
+<td align="left">Viktor Arvidsson</td>
+<td align="right">0.0</td>
+<td align="right">0.1</td>
+<td align="right">0.6</td>
+<td align="right">0.3</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">864</td>
+<td align="right">3</td>
+</tr>
+<tr class="even">
+<td align="left">Mike Hoffman</td>
+<td align="right">0.0</td>
+<td align="right">0.1</td>
+<td align="right">0.6</td>
+<td align="right">0.3</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">819</td>
+<td align="right">3</td>
+</tr>
+<tr class="odd">
+<td align="left">Colton Parayko</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.5</td>
+<td align="right">0.5</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">817</td>
+<td align="right">3</td>
+</tr>
+<tr class="even">
+<td align="left">Dougie Hamilton</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.7</td>
+<td align="right">0.3</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">812</td>
+<td align="right">3</td>
+</tr>
+<tr class="odd">
+<td align="left">Torey Krug</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.5</td>
+<td align="right">0.4</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">796</td>
+<td align="right">3</td>
+</tr>
+<tr class="even">
+<td align="left">Alex Pietrangelo</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.6</td>
+<td align="right">0.4</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">772</td>
+<td align="right">3</td>
+</tr>
+<tr class="odd">
+<td align="left">Oliver Ekman-Larsson</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.7</td>
+<td align="right">0.3</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">759</td>
+<td align="right">3</td>
+</tr>
+<tr class="even">
+<td align="left">David Pastrnak</td>
+<td align="right">0.0</td>
+<td align="right">0.1</td>
+<td align="right">0.6</td>
+<td align="right">0.3</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">746</td>
+<td align="right">3</td>
+</tr>
+<tr class="odd">
+<td align="left">Mark Giordano</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.7</td>
+<td align="right">0.3</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">744</td>
+<td align="right">3</td>
+</tr>
+<tr class="even">
+<td align="left">Jake Muzzin</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.6</td>
+<td align="right">0.4</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">739</td>
+<td align="right">3</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="conclusions-and-next-steps" class="section level3">
+<h3>Conclusions and next steps:</h3>
+<p>This was a pretty quick look at clustering players based on shot types. It doesn’t take into acount usage, different teams, different years, or anything more complicated.</p>
+<p>However, It does support my initial observation from the charts that Sean created that there’s a distinct difference between the shots that forwards and defensemen take.</p>
+<p>This could be a really interesting starting point to look at clusters over years:</p>
+<ul>
+<li><p>Have players moved cluster during their time in the NHL - or do clusters themselves change profile?</p></li>
+<li><p>If a player has moved team, or changed coach, does this have any impact on their shooting profile and their comparable players?</p></li>
+<li><p>What is going on in Cluster 3?</p></li>
+<li><p>How does this fit in with other player evaluation metrics that exist?</p></li>
+</ul>
+<p>I’m excited to look more in depth at this!</p>
+<p>This was my first attempt at working with NHL data and if anyone has any constructive criticism or suggestions I’d be grateful to hear them!</p>
+<p>The full code can be found on my github profile: <a href="http://github.com/em-ee">em-ee</a></p>
+</div>
+</div>
