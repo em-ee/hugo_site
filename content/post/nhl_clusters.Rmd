@@ -133,9 +133,9 @@ elbow_df <- data.frame(
 
 ```{r elbow, echo = FALSE, eval = TRUE}
 plot(elbow_df$k, elbow_df$tot_withinss)
-knitr::include_graphics('/post/nhl_clusters_files/elbow-1.png')
+knitr::include_graphics('./elbow.png')
 ```
-![](/post/nhl_clusters_files/elbow-1.png)
+![](./elbow.png)
 ```{r kmeans2, echo = FALSE, eval = TRUE, include = FALSE}
 shot_k <- kmeans(shot_dist, centers = 3)
 shot_pam <- pam(shot_dist, k = 3)
@@ -146,7 +146,7 @@ shot_pam <- pam(shot_dist, k = 3)
 plot(silhouette(shot_pam), border = NA, col = c("#c51b7d", "#5aae61", "#253494"))
 
 ```
-
+![](./sil.png)
 ```{r kmeans3, echo = FALSE, eval = TRUE, include = FALSE}
 shot_cluster <- shot_k$cluster
 
@@ -165,6 +165,7 @@ ggplot(shot_totsk, aes(wrist, slap, color = factor(cluster)))+
   labs(x = "Wrist shots proportion", y = "Slap shots proportion", color = "Cluster")
 
 ```
+![](./ggplotcl.png)
 
 You can see a bit more in a plotly 3D plot, added in backhand shots here as well:
 
