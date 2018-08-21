@@ -133,8 +133,9 @@ elbow_df <- data.frame(
 
 ```{r elbow, echo = FALSE, eval = TRUE}
 plot(elbow_df$k, elbow_df$tot_withinss)
+knitr::include_graphics('/post/nhl_clusters_files/elbow-1.png')
 ```
-
+![](/post/nhl_clusters_files/elbow-1.png)
 ```{r kmeans2, echo = FALSE, eval = TRUE, include = FALSE}
 shot_k <- kmeans(shot_dist, centers = 3)
 shot_pam <- pam(shot_dist, k = 3)
