@@ -18,7 +18,7 @@ load("shots.RData")
 
 ## I have finally got around to doing some work on NHL data. 
 
-A couple of days ago, Sean Tierney ( [@ChartingHockey](https://twitter.com/ChartingHockey) ) posted this: 
+A couple of days ago, Sean Tierney ( [ChartingHockey on Twitter](https://twitter.com/ChartingHockey) ) posted this: 
 
 ```{r t1, echo=FALSE}
 blogdown::shortcode('tweet', '1030799366913703937')
