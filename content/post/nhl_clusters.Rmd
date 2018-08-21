@@ -133,7 +133,6 @@ elbow_df <- data.frame(
 
 ```{r elbow, echo = FALSE, eval = TRUE}
 plot(elbow_df$k, elbow_df$tot_withinss)
-knitr::include_graphics('./elbow.png')
 ```
 ![](./elbow.png)
 ```{r kmeans2, echo = FALSE, eval = TRUE, include = FALSE}
