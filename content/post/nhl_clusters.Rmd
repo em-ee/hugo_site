@@ -131,20 +131,20 @@ elbow_df <- data.frame(
 )
 ```
 
-# ```{r elbow, echo = FALSE, eval = TRUE, include = FALSE}
-# plot(elbow_df$k, elbow_df$tot_withinss)
-# ```
+```{r elbow, echo = FALSE, eval = FALSE}
+plot(elbow_df$k, elbow_df$tot_withinss)
+```
 ![](./elbow.png)
 ```{r kmeans2, echo = FALSE, eval = TRUE, include = FALSE}
 shot_k <- kmeans(shot_dist, centers = 3)
 shot_pam <- pam(shot_dist, k = 3)
 ```
 
-# ``` {r sil, echo = FALSE, eval = TRUE}
-# 
-# plot(silhouette(shot_pam), border = NA, col = c("#c51b7d", "#5aae61", "#253494"))
-# 
-# ```
+ ``` {r sil, echo = FALSE, eval = FALSE}
+ 
+ plot(silhouette(shot_pam), border = NA, col = c("#c51b7d", "#5aae61", "#253494"))
+
+```
 ![](./sil.png)
 ```{r kmeans3, echo = FALSE, eval = TRUE, include = FALSE}
 shot_cluster <- shot_k$cluster
@@ -156,14 +156,14 @@ shot_totsk <- mutate(shot_tots, cluster = shot_cluster)
 
 You can see here the clusters mapped against wrist shots and slap shots (slap shots was where there seemed to be the biggest difference between players):
 
-# ```{r ggplot shots, echo = FALSE, eval = TRUE}
-# 
-# ggplot(shot_totsk, aes(wrist, slap, color = factor(cluster)))+
-#   geom_jitter()+
-#   ggtitle("NHL shot type clusters")+
-#   labs(x = "Wrist shots proportion", y = "Slap shots proportion", color = "Cluster")
-# 
-# ```
+```{r ggplot shots, echo = FALSE, eval = FALSE}
+
+ggplot(shot_totsk, aes(wrist, slap, color = factor(cluster)))+
+  geom_jitter()+
+  ggtitle("NHL shot type clusters")+
+  labs(x = "Wrist shots proportion", y = "Slap shots proportion", color = "Cluster")
+
+```
 ![](./ggplotcl.png)
 
 You can see a bit more in a plotly 3D plot, added in backhand shots here as well:
