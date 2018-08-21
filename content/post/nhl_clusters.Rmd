@@ -2,7 +2,7 @@
 title: "NHL clustering"
 author: "Em"
 date: 2018-08-21
-categories: ["R", "hockey", "analysis"]
+categories: ["R", "hockey"]
 tags: ["R", "clustering", "ml", "hockey"]
 ---
 

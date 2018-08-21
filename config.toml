@@ -5,6 +5,8 @@ languageCode = "en-us"
 copyright = "Em."
 googleAnalytics = "XXX"
 enableEmoji = true
+uglyURLs = true
+
 
 [Privacy]
 
@@ -44,8 +46,8 @@ enableEmoji = true
     highlightJsUrl = ""
     highlightJsLocalUrl = ""
 
-[Permalinks]
-    post = "/:year/:month/:day/:filename/"
+#[Permalinks]
+#    post = "/:year/:month/:day/:filename/"
 
 [[menu.main]]
     name = "Blog"
