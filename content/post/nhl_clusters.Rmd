@@ -1,5 +1,5 @@
 ---
-title: "NHL clustering"
+title: "Can you cluster NHL players on shots?"
 author: "Em"
 date: 2018-08-21
 categories: ["R", "hockey"]
@@ -28,15 +28,23 @@ Sean does many great things with Tableau (see more [here](https://public.tableau
 
 The data comes from [Moneypuck](http://moneypuck.com/about.htm) and shows shots for NHL seasons 2007-2017. The dataset can be downloaded from Moneypuck - there's over 1 million shots in the full dataset, however, so keep that in mind!
 
-Looking at Sean's charts, I chose a few players off the top of my head and one thing I noticed was a distinct difference in shot types between defensemen and forwards.
+Looking at Sean's charts, I chose a few players off the top of my head and one thing I noticed was a distinct difference in shot types between defensemen and forwards. This isn't revolutionary - you can see it when you watch a hockey game - but it was interesting to see it in the data.
 
 ```{r t2, echo=FALSE}
 blogdown::shortcode('tweet', '1030808619988779008')
 ```
 
-I have been meaning to do some analysis on hockey data for ages - but have never quite got properly around to it. But here I thought I might be able to do something relatively straightforward and see if I could cluster players based on their shot types. 
+I have been meaning to do some analysis on hockey data for ages - but have never quite got properly around to it. But here I thought I might be able to do something relatively straightforward and see if I could cluster players based on their shot types. This is the first bit of work I have done on hockey data (my real-life work deals with health data) so I wanted to do something simple to start with, but which might lead to something more interesting. I had a (very) quick search but couldn't immediately see that anyone had done this with this dataset - but please do point me towards any similar analyses!
 
-I had a (very) quick search but couldn't immediately see that anyone had done this with this dataset - but please do point me towards any similar analyses.
+So:
+
+- can you cluster by shot types?
+
+- does it get any more interesting than 2 clusters of forwards and defensemen?
+
+- what other ways could you cluster players?
+
+
 
 ### Data wrangling:
 
@@ -59,6 +67,7 @@ I also picked a couple of variables as descriptors - team and position for each 
 shooter_chars<-shots%>%
   select(shooterName, teamCode, playerPositionThatDidEvent)%>%
   group_by(shooterName, playerPositionThatDidEvent)%>%
+  filter(playerPositionThatDidEvent!="")%>%
   unique()
 ```
 
@@ -70,7 +79,7 @@ knitr::kable(head(shooter_chars, 10))
 
 The first time I tried to cluster shot types, I used totals of each shot type per player. However, this ended up clustering into players who had lots of shots and players who had very few shots - which is not very interesting or useful. 
 
-So I took the total of each shot type as a proportion of total shots taken by that player. (I thought about filtering out anyone who hadn't had a certain number of shots - but decided against it at this stage as it looked like it would exclude too many players (e.g. the median total is 148 shots)).
+So I took the total of each shot type as a proportion of total shots taken by that player. When I then tried to cluster, It still clustered those with very few shots all in one group, because their relative percentages across all shot types were high. Therefore, I decided to remove anyone who took less than 30 shots - this was the bottom 25% of players in this dataset. I am inclined to set this threshold much higher and see how the results differ - but for now let's stick with this. 
 
 ```{r shot_tot, echo = FALSE, eval = TRUE, include = FALSE}
 shot_cat <- shot_type%>%
@@ -96,7 +105,7 @@ shot_tots<-shot_cat%>%
 
 shot_tots$tot = rowSums(shot_tots[2:8], na.rm = TRUE)
 
-shot_tots<-shot_tots%>%
+shot_tots_sum<-shot_tots%>%
   group_by(shooterName)%>%
   summarize(defl = round((defl/tot), 1),
             back = round((back/tot), 1),
@@ -105,11 +114,13 @@ shot_tots<-shot_tots%>%
             snap = round((snap/tot), 1),
             tip = round((tip/tot), 1),
             wrap = round((wrap/tot), 1),
-            tot = tot)
+            tot = tot)%>%
+  filter(tot>30)
+
 ```
 ```{r view_shot_tot, echo = FALSE, eval = TRUE}
 
-knitr::kable(head(shot_tots, 10))
+knitr::kable(head(shot_tots_sum, 10))
 
 ```
 
@@ -117,11 +128,8 @@ I wasn't sure how many clusters would be appropriate, so I ran k-means for 1:10 
 
 ``` {r kmeans1, echo = FALSE, eval = TRUE, include = FALSE}
 nope <- c(1,9)
-shot_dist <- (dist(shot_tots[, -nope], method = "euclidean"))
-shot_dist <- (as.matrix(shot_dist))
-
 tot_withinss <- map_dbl(1:10,  function(k){
-  model <- kmeans(x = shot_dist, centers = k)
+  model <- kmeans(x = shot_tots_sum[, -nope], centers = k)
   model$tot.withinss
 })
 
@@ -129,32 +137,38 @@ elbow_df <- data.frame(
   k = 1:10 ,
   tot_withinss = tot_withinss
 )
+
 ```
 
 ```{r elbow, echo = FALSE, eval = FALSE}
-plot(elbow_df$k, elbow_df$tot_withinss)
+ggplot(elbow_df, aes(x = k, y = tot_withinss))+
+  geom_point(col = "#c51b7d")+
+  geom_line(col = "#c51b7d")+
+  ggtitle("Elbow plot for k=1 to k=10")+
+  labs(x = "K", y = "Total within-cluster sum of squares")+
+  theme(plot.title = element_text(hjust = 0.5))
 ```
 ![](./elbow.png)
 ```{r kmeans2, echo = FALSE, eval = TRUE, include = FALSE}
-shot_k <- kmeans(shot_dist, centers = 3)
-shot_pam <- pam(shot_dist, k = 3)
+shot_k <- kmeans(shot_tots_sum[, -nope], centers = 3)
+shot_d <- daisy(shot_tots_sum[, -nope])
 ```
 
- ``` {r sil, echo = FALSE, eval = FALSE}
+``` {r sil, echo = FALSE, eval = FALSE}
  
- plot(silhouette(shot_pam), border = NA, col = c("#c51b7d", "#5aae61", "#253494"))
+plot(silhouette(shot_k$cluster, shot_d), border = NA, col = c("#c51b7d", "#5aae61", "#253494"))
 
 ```
 ![](./sil.png)
 ```{r kmeans3, echo = FALSE, eval = TRUE, include = FALSE}
 shot_cluster <- shot_k$cluster
 
-shot_totsk <- mutate(shot_tots, cluster = shot_cluster)
+shot_totsk <- mutate(shot_tots_sum, cluster = shot_cluster)
 ```
 
 ## Cluster plots
 
-You can see here the clusters mapped against wrist shots and slap shots (slap shots was where there seemed to be the biggest difference between players):
+You can see here the clusters mapped against wrist shots and slapshots (slapshots was where there seemed to be the biggest difference between players):
 
 ```{r ggplot shots, echo = FALSE, eval = FALSE}
 
@@ -166,18 +180,20 @@ ggplot(shot_totsk, aes(wrist, slap, color = factor(cluster)))+
 ```
 ![](./ggplotcl.png)
 
-You can see a bit more in a plotly 3D plot, added in backhand shots here as well:
+You can see a bit more in a plotly 3D plot, added in backhand shots here as the 3rd dimension here (also I just learned how to do these plots and I am in awe):
 
 ```{r plotly, echo = FALSE, eval = TRUE}
 plot_ly (shot_totsk, x = ~wrist , y = ~slap , z = ~back)%>%
   add_markers(color = ~cluster)
 ```
 
-But I guess the interesting thing to note is the characteristics of each cluster. 
+But I guess the interesting thing to note is the characteristics of each cluster. There clearly is a defensemen cluster and a forward cluster (and here is where I am wondering whether setting the shot total threshold will make a difference) - but there is also a third, somewhat mixed, cluster. 
 
 ```{r shot_exps1, echo = FALSE, eval = TRUE, include = FALSE}
 shot_exps<-shot_totsk%>%
-  left_join(shooter_chars, by = "shooterName")
+  left_join(shooter_chars, by = "shooterName")%>%
+  group_by(shooterName)%>%
+  unique()
 
 shot_exps1<-shot_exps%>%
   group_by(cluster)%>%
@@ -217,6 +233,13 @@ players1<-as.data.frame(shot_exps%>%
   select(-c(teamCode, playerPositionThatDidEvent))%>%
   unique())
 
+forw1<-as.data.frame(shot_exps%>%
+                      filter(cluster==1)%>%
+                      filter(playerPositionThatDidEvent!="D")%>%
+                      select(shooterName:cluster)%>%
+                      arrange(desc(tot))%>%
+                      unique())
+
 players2<-as.data.frame(shot_exps%>%
   filter(cluster==2)%>%
   arrange(desc(tot))%>%
@@ -235,65 +258,91 @@ players3<-as.data.frame(shot_exps%>%
   arrange(desc(tot))%>%
   select(-c(teamCode, playerPositionThatDidEvent))%>%
   unique())
+
+forw3<-as.data.frame(shot_exps%>%
+                       filter(cluster==3)%>%
+                       filter(playerPositionThatDidEvent!="D")%>%
+                       select(shooterName:cluster)%>%
+                       arrange(desc(tot))%>%
+                       unique())
+
+def3<-as.data.frame(shot_exps%>%
+                       filter(cluster==3)%>%
+                       filter(playerPositionThatDidEvent=="D")%>%
+                       select(shooterName:cluster)%>%
+                       arrange(desc(tot))%>%
+                       unique())
+
+
 ```
 
 ###Cluster 1:
-Cluster 1 has 60% defensemen, and 16% centers. The type of shots taken in this cluster is quite varied - 32% slapshots, 26% wrist shots, and 11% each of snap, tip and wraparounds. 
+Cluster 1 has 96% defensemen. These players take a pretty even amount of wrist and slapshots (46% and 49% respectively) and a tiny percentage of backhand shots. 7 forwards make it into this group as well: 
 
-Notable players in Cluster 1: **PK Subban, Drew Doughty, Shea Weber, Duncan Keith**...
-
+Top 10 players (by shot totals) in Cluster 1:
 
 ``` {r view players1, echo = FALSE, eval = TRUE}
 
-knitr::kable(head(players1, 20))
+knitr::kable(head(players1, 10))
 ```
 
+The 7 forwards in Cluster 1:
+``` {r view forw1, echo = FALSE, eval = TRUE}
+
+knitr::kable(forw1)
+```
+
+
 ###Cluster 2:
-Cluster 2 is the forwards cluster - only 3% are defensemen here. 68% of the shots taken in this group are wrist shots, with pretty small numbers of any other type. 
+Cluster 2 is the forwards cluster - only 2 defensemen end up here, Ben Harpur and Stefan Elliott, but they both have under 60 total shots so I'm not sure that their presence in this cluster is wildly important. 71% of the shots taken in this group are wrist shots, with small-ish numbers of any other type - backhand shots do account for 13% though. 
 
-Notable players in Cluster 2: **Sidney Crosby, Blake Wheeler, Nathan MacKinnon, Phil Kessel**...
-
+Top 10 players (by shot totals) in Cluster 2:
 
 ``` {r view players2, echo = FALSE, eval = TRUE}
 
-knitr::kable(head(players2, 20))
-```
-
-Defensemen in Cluster 2 include: **John Klingberg, Morgan Reilly, Brian Dumoulin, Justin Holl**...
-
-``` {r view def2, echo = FALSE, eval = TRUE}
-
-knitr::kable(def2)
+knitr::kable(head(players2, 10))
 ```
 
 ###Cluster 3:
-Cluster 3 is even more overwhelmingly defensemen than Cluster 1 - 79%! The distribution of shot types is quite similar to Cluster 1 - but there is less variation and a higher percentage of wrist and slapshots. However when you look at the names, some interesting ones come up:
+So this is an interesting cluster. It's relatively evenly split between forwards and defensemen, and with 64% wrist shots and 25% slapshots. 
+Looks like this cluster is made up of D-men with fewer slapshots than average, and forwards with more slapshots than average. 
 
-Notable players in Cluster 3: **Alex Ovechkin, Tyler Seguin, Brent Burns, Erik Karlsson**...
+Top 10 players (by shot totals) in Cluster 3:
 
 ``` {r view players3, echo = FALSE, eval = TRUE}
 
-knitr::kable(head(players3, 20))
+knitr::kable(head(players3, 10))
 ```
 
+Top 10 forwards (by shot totals) in Cluster 3:
+
+``` {r view forw3, echo = FALSE, eval = TRUE}
+
+knitr::kable(head(forw3, 10))
+```
+
+Top 10 defensemen (by shot totals) in Cluster 3:
+
+``` {r view def3, echo = FALSE, eval = TRUE}
+
+knitr::kable(head(def3, 10))
+```
 
 ### Conclusions and next steps:
 
-This was a pretty quick look at clustering players based on shot types. It doesn't take into acount usage, different teams, different years, or anything more complicated. 
+This was a pretty quick look at clustering players based on shot types. It doesn't take into acount usage, different teams, different years, or anything more complicated than proportion of shot types for each player. 
 
-However, It does support my initial observation from the charts that Sean created that there's a distinct difference between the shots that forwards and defensemen take.
+However, it does show that like in the charts that Sean created, there's a distinct difference between the shots that forwards and defensemen take.
 
-This could be a really interesting starting point to look at clusters over years:
+This could be an interesting starting point to look at further clustering questions:
 
 - Have players moved cluster during their time in the NHL - or do clusters themselves change profile?
 
-- If a player has moved team, or changed coach, does this have any impact on their shooting profile and their comparable players? 
+- If a player has moved team, or changed coach, does this have any impact on their shooting profile and their comparable players?
 
-- What is going on in Cluster 3?
+- How does this fit in with other types of player analysis?
 
-- How does this fit in with other player evaluation metrics that exist?
-
-I'm excited to look more in depth at this!
+I'm excited to look more in depth at this - I think my first step is going to be to raise the shot total threshold and see what difference that makes - I will likely write a part 2 to this post if it shows anything interesting. 
 
 This was my first attempt at working with NHL data and if anyone has any constructive criticism or suggestions I'd be grateful to hear them!
 
