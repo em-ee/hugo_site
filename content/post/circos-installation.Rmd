@@ -1,0 +1,35 @@
+---
+title: "CIRCOS"
+author: "Em"
+date: 2018-09-05
+categories: ["circos", "compsci", "tutorial"]
+tags: ["circos", "tutorial", "compsci", "death"]
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### A couple of years ago, I installed Circos on the Mac I use for work. 
+
+I remember at the time that this was a terrifying and mystifying process, partly because I had barely used the command line before, so had no real idea what I was doing and was terrified I would accidentally destroy my laptop, and partly because it requires libgd, which was clearly created by the devil. There seem to be warnings across the internet (including on the Circos site) that installing GD will cause endless problems and make you wish you never wanted to make cool circular plots. 
+
+I eventually figured it out a couple of years ago, and on my work Mac, was able to create cool images which (eventually) will be used for a paper. I thought at the time that I should probably write down the steps I took to complete the installation, in case I needed to do it again, but past me deserves to be punished because...I did not write it down. 
+
+I am not going to be able to use my current work Mac forever, and I wanted to create circos plots for personal projects too, so I decided to try and install on my personal laptop. This has been a not-fun process and included me giving up for weeks before I decided to try again today. I don't remember all the processes I went through to get it to work today, but there are a couple of main points to note to try and ensure a smooth installation on a Mac:
+
+#### 1.
+I recommend (after checking that you have perl and make) to follow the instructions [here](https://kylase.github.io/CircosAPI/os-x-installation-guide/) to install freetype and libgd (WITH FREETYPE which is the most important bit!). 
+Just follow those two instructions - don't go any further. 
+
+### 2. 
+Then, follow the instructions [here](http://aidanquinn.net/blog/blog/2015/11/11/installing-circos-on-mac-osx/) starting from number 3 - Download and install Circos. This should then run you through installing Circos and the required modules without any problem. 
+
+### What are circos plots anyway?
+
+Circos plots are circular plots. They're used in genetics (which is why my boss was interested in making one) but can be used to display all kinds of data. There are lots of examples [here](http://circos.ca). 
+
+There is an R package called circlize which you can use to create them as well, but I haven't really tried it out. I'm sure you could probably make them in Python too. The basics of the program is that you create (or use an existing) karyotype file to draw the plot, then create different tracks to display data. I am going to create a couple of plots and will do a proper write-up and share the code then. 
+
+But for now, I am going to go celebrate that I have finally got this up and running!
+
+![](./logo.png)
