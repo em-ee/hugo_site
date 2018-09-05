@@ -21,7 +21,7 @@ I am not going to be able to use my current work Mac forever, and I wanted to cr
 I recommend (after checking that you have perl and make) to follow the instructions [here](https://kylase.github.io/CircosAPI/os-x-installation-guide/) to install freetype and libgd (WITH FREETYPE which is the most important bit!). 
 Just follow those two instructions - don't go any further. 
 
-### 2. 
+#### 2. 
 Then, follow the instructions [here](http://aidanquinn.net/blog/blog/2015/11/11/installing-circos-on-mac-osx/) starting from number 3 - Download and install Circos. This should then run you through installing Circos and the required modules without any problem. 
 
 ### What are circos plots anyway?
