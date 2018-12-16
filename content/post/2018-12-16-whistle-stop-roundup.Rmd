@@ -1,0 +1,33 @@
+---
+title: Whistle-stop roundup!
+author: Em
+date: '2018-12-16'
+slug: whistle-stop-roundup
+categories: ["circos", "compsci", "tutorial"]
+tags: ["circos", "tutorial", "compsci", "death"]
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+WELL. I fully intended, back in September, to write a blog at least weekly detailing all the things I've been doing. 
+I slightly underestimated quite how busy I would be, and now the first semester of my MSc is over, and I have learned a ton of new things, but haven't quite got around to writing about them yet. 
+
+I'm also not too sure how much of my MSc work I can make public at the moment - I have a lot of my work in private repos under my student Github account, and as soon as I find out whether I can make them public without getting into trouble, I will.
+
+The R course I've been taking has been really nice because it's more or less things I already know - statistical learning methods. I got a 98 on my first piece of coursework which further proves I know what I'm doing! I have one more piece of coursework to finish, hopefully I will do just as well... 
+
+I had a really steep learning curve with the two programming with Python courses I took this semester. They were less about analysis and more about actual programming - algorithms and scalability, which is quite new to me. 
+
+The Principles of Programming course started with for loops which was fine, but then moved more into data structures, memory, recursion, functional and object-oriented programming, and test-driven development and version control. I'm writing the coursework for this module at the moment, which involves writing a program to play the [Three Musketeers game](https://en.wikipedia.org/wiki/Three_Musketeers_(game)).
+
+The follow-on from that course was an even steeper learning curve - I have always been used to using built-in functions for analysis, because why would I write my own code to sort values when a perfectly good `sort()` function exists? This course taught me about complexity, sorting and searching algorithms, probabilities, greedy algorithms, gradient descent, recursion vs dynamic programming, P vs NP problems, relational databases and there were also 2 sessions on data ethics, which were really great to have. I've written two pieces of coursework for this course - one data ethics report and one piece of code which generates data and implements searching and reporting functions to a specification. 
+
+The final course this semester was the first part of 'Fundamentals of Computing'. This course started with logic, and moved on to automata, languages, regular expressions, and we've briefly touched on Turing machines. I understand this course while the lecture is happening, but am immediately confused afterwards. I have the coursework to do over the Christmas break, so I'm hoping having some time to read and review the material will shed some light!
+
+Next term is 11 more weeks of teaching, and then...that's it? I'll have exams, and my MSc project to do (which will be a whole separate post at some point), but all the teaching will be done. It seems strange that it will be over so quickly, but I can hardly believe how much I've learned in such a short amount of time. 
+
+Next term's modules: Machine Learning, Fundamentals of Computing (yay, more!), Information Retrieval and Organisation, and Data Science Techniques and Applications.
+
+My NHL work is temporarily on hold because I just haven't had time to do anything - but hopefully after Christmas I will get a chance to work on some things and publish them. And after Christmas I will try to post more frequently - I'll make it a New Year's Resolution! 
+
